@@ -115,9 +115,7 @@
                     </div>
                     <div class="relative">
                         <input v-model.number="manualShopRate" @input="updateFromShopRate" type="number" step="0.01" class="input-bg w-full p-3 rounded-xl text-sm font-mono outline-none text-emerald-400" placeholder="輸入找換店匯率...">
-                        <div class="absolute right-3 top-3"><i class="fas fa-sync fa-spin text-emerald-500 text-xs"></i></div>
                     </div>
-                    <p class="text-[9px] text-gray-500">系統會自動抓取即時價，你亦可直接改為找換店賣出價</p>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -137,13 +135,19 @@
                         </div>
                     </div>
                 </div>
+
+                <div v-if="form.amount" class="text-center bg-black/20 py-2 rounded-xl border border-white/5">
+                    <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mr-2">折合港幣約</span>
+                    <span class="text-emerald-400 font-mono font-bold italic">HK$ {{ (form.amount * currentRate).toFixed(1) }}</span>
+                </div>
+
                 <button @click="isEditing ? saveEdit() : addExpense()" :class="isEditing ? 'bg-amber-600' : 'evergreen-gradient'" class="w-full text-white font-black py-5 rounded-[20px] shadow-xl text-sm uppercase tracking-widest active:scale-95 transition-all">
                     {{ isEditing ? '儲存修改' : '確認記帳' }}
                 </button>
             </div>
         </section>
 
-        <div v-if="showClearDialog" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+        <div v-if="showClearDialog" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6" @click.self="showClearDialog = false">
             <div class="card-bg w-full max-w-xs rounded-[32px] p-6 border border-white/10 shadow-2xl">
                 <h3 class="font-black text-emerald-500 text-center mb-6">你想清除什麼？</h3>
                 <div class="space-y-4 mb-8">
@@ -174,13 +178,13 @@
         <div class="card-bg w-full max-w-sm rounded-[32px] p-6 flex flex-col gap-4 shadow-2xl border border-white/10">
             <h3 class="font-black text-emerald-500 text-sm">文字結算</h3>
             <textarea readonly class="input-bg w-full h-64 p-4 rounded-2xl text-[13px] font-mono leading-relaxed" v-model="shareMessage"></textarea>
-            <div class="grid grid-cols-2 gap-3"><button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold">複製文字</button><button @click="shareWhatsApp" class="whatsapp-green py-4 rounded-2xl text-xs font-bold">WhatsApp</button></div>
+            <div class="grid grid-cols-2 gap-3"><button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold">複製</button><button @click="shareWhatsApp" class="whatsapp-green py-4 rounded-2xl text-xs font-bold">WhatsApp</button></div>
         </div>
     </div>
     <div v-if="previewImg" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex flex-col items-center justify-center p-6" @click.self="previewImg = null">
         <div class="w-full max-w-sm flex flex-col items-center">
             <img :src="previewImg" class="max-w-full max-h-[60vh] rounded-2xl shadow-2xl mb-8 border border-white/10">
-            <div class="grid grid-cols-2 gap-4 w-full"><button @click="downloadImage" class="bg-white/10 text-white border border-white/20 py-4 rounded-2xl text-xs font-bold">下載圖片</button><button @click="shareImage" class="evergreen-gradient text-white py-4 rounded-2xl text-xs font-bold">分享圖片</button></div>
+            <div class="grid grid-cols-2 gap-4 w-full"><button @click="downloadImage" class="bg-white/10 text-white border border-white/20 py-4 rounded-2xl text-xs font-bold">下載</button><button @click="shareImage" class="evergreen-gradient text-white py-4 rounded-2xl text-xs font-bold">分享</button></div>
         </div>
     </div>
 </div>
@@ -193,14 +197,10 @@ createApp({
         const currentRate = ref(1); const manualShopRate = ref(0); 
         const isEditing = ref(false); const editIndex = ref(null);
         const isExporting = ref(false); const previewImg = ref(null); const showTextShare = ref(false);
-        const showDetails = ref(true);
+        const showDetails = ref(true); const showClearDialog = ref(false);
+        const clearOptions = ref({ expenses: true, users: false });
         const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
 
-        // 新增：清除彈窗狀態
-        const showClearDialog = ref(false);
-        const clearOptions = ref({ expenses: true, users: false });
-
-        // 匯率算法改為找換店賣出價邏輯：1 HKD 可以換多少外幣
         const fetchRate = async () => {
             if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; return; }
             try { 
@@ -211,46 +211,16 @@ createApp({
             } catch (e) { currentRate.value = 1; }
         };
 
-        const updateFromShopRate = () => {
-            if (manualShopRate.value > 0) {
-                currentRate.value = 1 / manualShopRate.value;
-            }
-        };
-
-        const handleCurrencyChange = () => {
-            if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; }
-            else { fetchRate(); }
-        };
-
-        const addUser = () => {
-            const n = newUser.value.trim();
-            if (n && !users.value.includes(n)) { users.value.push(n); form.value.involved.push(n); if(!form.value.payer) form.value.payer = n; newUser.value = ""; }
-        };
-
+        const updateFromShopRate = () => { if (manualShopRate.value > 0) currentRate.value = 1 / manualShopRate.value; };
+        const handleCurrencyChange = () => { if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; } else fetchRate(); };
+        const addUser = () => { const n = newUser.value.trim(); if (n && !users.value.includes(n)) { users.value.push(n); form.value.involved.push(n); if(!form.value.payer) form.value.payer = n; newUser.value = ""; } };
+        
         const addExpense = () => {
             if (!form.value.item || !form.value.amount || !form.value.payer) return alert("請填寫正確資料");
-            expenses.value.unshift({ 
-                id: Date.now(), ...form.value, 
-                hkd: form.value.amount * currentRate.value, 
-                rateUsed: currentRate.value,
-                involved: [...form.value.involved] 
-            });
+            expenses.value.unshift({ id: Date.now(), ...form.value, hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value, involved: [...form.value.involved] });
             form.value.item = ""; form.value.amount = "";
         };
 
-        // 清空邏輯修改
-        const confirmClear = () => {
-            if (clearOptions.value.expenses) expenses.value = [];
-            if (clearOptions.value.users) {
-                users.value = [];
-                form.value.involved = [];
-                form.value.payer = "";
-            }
-            showClearDialog.value = false;
-            localStorage.setItem('mathgod_v55_data', JSON.stringify({ users: users.value, expenses: expenses.value }));
-        };
-
-        // 其他邏輯保持不變...
         const startEdit = (i) => {
             isEditing.value = true; editIndex.value = i; const exp = expenses.value[i];
             form.value = JSON.parse(JSON.stringify(exp)); currentRate.value = exp.rateUsed || 1;
@@ -261,6 +231,13 @@ createApp({
             expenses.value[editIndex.value] = { ...form.value, hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value };
             isEditing.value = false; form.value.item = ""; form.value.amount = "";
         };
+
+        const confirmClear = () => {
+            if (clearOptions.value.expenses) expenses.value = [];
+            if (clearOptions.value.users) { users.value = []; form.value.involved = []; form.value.payer = ""; }
+            showClearDialog.value = false;
+        };
+
         const settlements = computed(() => {
             let balances = {}; users.value.forEach(u => balances[u] = 0);
             expenses.value.forEach(exp => {
@@ -279,6 +256,7 @@ createApp({
             }
             return res;
         });
+
         const shareMessage = computed(() => {
             let msg = `⚡️最後結算\n📊 總支出：HK$${expenses.value.reduce((s,e)=>s+e.hkd,0).toFixed(1)}\n\n✅ 埋單計數：\n`;
             settlements.value.forEach(s => msg += `🔹 ${s.from} ➔ ${s.to}：HK$${s.amount.toFixed(1)}\n`);
@@ -287,13 +265,12 @@ createApp({
             }
             msg += `\n大家可以睇返銀碼找數啦！😃`; return msg;
         });
+
         const generateImage = async () => {
             isExporting.value = true;
             setTimeout(async () => {
-                try {
-                    const canvas = await html2canvas(document.getElementById('capture-zone'), { backgroundColor: '#121212', scale: 2, useCORS: true });
-                    previewImg.value = canvas.toDataURL('image/png');
-                } catch (err) { alert("截圖失敗"); }
+                const canvas = await html2canvas(document.getElementById('capture-zone'), { backgroundColor: '#121212', scale: 2, useCORS: true });
+                previewImg.value = canvas.toDataURL('image/png');
                 isExporting.value = false;
             }, 300);
         };
@@ -309,7 +286,7 @@ createApp({
             showClearDialog, clearOptions, confirmClear, updateFromShopRate,
             addUser, addExpense, startEdit, saveEdit, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
             handleCurrencyChange, fetchRate, generateImage, downloadImage:()=> { const l=document.createElement('a'); l.download='MathGod.png'; l.href=previewImg.value; l.click(); },
-            shareImage: async()=> { try{const r=await fetch(previewImg.value); const b=await r.blob(); const f=new File([b],'s.png',{type:'image/png'}); if(navigator.share) await navigator.share({files:[f]});}catch(e){} },
+            shareImage: async()=> { const r=await fetch(previewImg.value); const b=await r.blob(); const f=new File([b],'s.png',{type:'image/png'}); if(navigator.share) await navigator.share({files:[f]}); },
             copyText:()=> { navigator.clipboard.writeText(shareMessage.value); alert("已複製！"); },
             shareWhatsApp:()=> { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage.value)}`); },
             removeUser:(i)=>users.value.splice(i,1), removeExpense:(i)=>expenses.value.splice(i,1)
