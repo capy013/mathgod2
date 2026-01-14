@@ -47,7 +47,7 @@
 
     <div class="p-4 space-y-6">
         <section v-if="!isExporting" class="card-bg p-5 rounded-3xl shadow-sm">
-            <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">1. 加入朋友</h2>
+            <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">加入朋友</h2>
             <div class="flex gap-2 mb-4">
                 <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名稱..." class="input-bg flex-1 p-3 rounded-2xl text-sm outline-none">
                 <button @click="addUser" class="bg-emerald-600 text-white px-6 rounded-2xl text-sm font-bold">加入</button>
@@ -63,7 +63,7 @@
             <section v-if="expenses.length > 0" class="bg-emerald-950/20 border border-emerald-900/40 p-6 rounded-[32px] mb-2">
                 <div class="flex justify-between items-end mb-6">
                     <div>
-                        <h2 class="font-black text-emerald-500 text-xl tracking-tight safe-render">夾錢結果</h2>
+                        <h2 class="font-black text-emerald-500 text-xl tracking-tight safe-render">最後結算</h2>
                         <p class="text-[10px] text-gray-500 -mt-2">Settlement</p>
                     </div>
                     <div class="text-right font-mono font-bold text-emerald-500 text-lg">HK${{ totalSpent.toFixed(1) }}</div>
@@ -253,7 +253,7 @@ createApp({
 
         // 修正：文字分享也受 showDetails 控制
         const shareMessage = computed(() => {
-            let msg = `⚡️ 【數神 MathGod】結算\n📊 總支出：HK$${expenses.value.reduce((s,e)=>s+e.hkd,0).toFixed(1)}\n\n✅ 夾錢：\n`;
+            let msg = `⚡️ 【數神 MathGod】結算\n📊 總支出：HK$${expenses.value.reduce((s,e)=>s+e.hkd,0).toFixed(1)}\n\n✅ 找數：\n`;
             settlements.value.forEach(s => msg += `🔹 ${s.from} ➔ ${s.to}：HK$${s.amount.toFixed(1)}\n`);
             
             if (showDetails.value && expenses.value.length > 0) {
