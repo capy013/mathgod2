@@ -47,7 +47,7 @@
 
     <div class="p-4 space-y-6">
         <section v-if="!isExporting" class="card-bg p-5 rounded-3xl shadow-sm">
-            <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">1. 加入朋友</h2>
+            <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">加入朋友</h2>
             <div class="flex gap-2 mb-4">
                 <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名稱..." class="input-bg flex-1 p-3 rounded-2xl text-sm outline-none">
                 <button @click="addUser" class="bg-emerald-600 text-white px-6 rounded-2xl text-sm font-bold">加入</button>
@@ -109,7 +109,8 @@
             </div>
         </div>
 
-        <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border border-white/5 mt-6">
+        <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border border-white/5 mt-6 shadow-xl">
+             <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">2. 記帳</h2>
             <div class="space-y-5">
                 <input v-model="form.item" type="text" placeholder="項目 (例如: 午飯)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
                 <div class="flex gap-2">
@@ -133,66 +134,3 @@
                         <label class="text-[10px] font-bold text-gray-500 ml-1">誰參與？</label>
                         <div class="input-bg max-h-32 overflow-y-auto rounded-2xl p-3 text-[10px]">
                             <div v-for="u in users" :key="u" class="flex items-center gap-3 mb-2">
-                                <input type="checkbox" :value="u" v-model="form.involved" class="w-4 h-4 rounded accent-emerald-500">
-                                <span class="truncate">{{ u }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <button @click="isEditing ? saveEdit() : addExpense()" :class="isEditing ? 'bg-amber-600' : 'evergreen-gradient'" class="w-full text-white font-black py-5 rounded-[20px] shadow-xl text-sm uppercase tracking-widest active:scale-95 transition-all">
-                    {{ isEditing ? '儲存修改' : '確認記帳' }}
-                </button>
-            </div>
-        </section>
-
-        <div v-if="showTextShare" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6" @click.self="showTextShare = false">
-            <div class="card-bg w-full max-w-sm rounded-[32px] p-6 flex flex-col gap-4 shadow-2xl border border-white/10">
-                <h3 class="font-black text-emerald-500 text-sm">文字結算</h3>
-                <textarea readonly class="input-bg w-full h-64 p-4 rounded-2xl text-[13px] font-mono leading-relaxed" v-model="shareMessage"></textarea>
-                <div class="grid grid-cols-2 gap-3">
-                    <button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold active:scale-95 transition-all">複製文字</button>
-                    <button @click="shareWhatsApp" class="whatsapp-green py-4 rounded-2xl text-xs font-bold active:scale-95 transition-all">WhatsApp 分享</button>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="previewImg" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex flex-col items-center justify-center p-6" @click.self="previewImg = null">
-            <div class="w-full max-w-sm flex flex-col items-center">
-                <img :src="previewImg" class="max-w-full max-h-[60vh] rounded-2xl shadow-2xl border border-white/10 mb-8">
-                <div class="grid grid-cols-2 gap-4 w-full">
-                    <button @click="downloadImage" class="bg-white/10 text-white border border-white/20 py-4 rounded-2xl text-xs font-bold active:scale-95 transition-all">下載圖片</button>
-                    <button @click="shareImage" class="evergreen-gradient text-white py-4 rounded-2xl text-xs font-bold shadow-lg active:scale-95 transition-all">分享圖片</button>
-                </div>
-                <button @click="previewImg = null" class="mt-8 text-emerald-500 text-xs font-bold underline">返回編輯</button>
-            </div>
-        </div>
-        
-        <div v-if="expenses.length > 0 && !isExporting" class="px-4 text-center">
-            <button @click="clearAll" class="text-red-500/30 text-[10px] font-bold uppercase py-2">清除所有紀錄</button>
-        </div>
-    </div>
-</div>
-
-<script>
-const { createApp, ref, computed, watch, onMounted } = Vue;
-createApp({
-    setup() {
-        const users = ref([]); const newUser = ref(""); const expenses = ref([]);
-        const currentRate = ref(1); const isEditing = ref(false); const editIndex = ref(null);
-        const isExporting = ref(false); const previewImg = ref(null); const showTextShare = ref(false);
-        const showDetails = ref(true);
-        const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
-
-        const fetchRate = async () => {
-            if(form.value.currency === 'HKD') { currentRate.value = 1; return; }
-            try { const res = await fetch(`https://open.er-api.com/v6/latest/${form.value.currency}`); const data = await res.json(); currentRate.value = data.rates.HKD || 1; } catch (e) { currentRate.value = 1; }
-        };
-
-        const addUser = () => {
-            const n = newUser.value.trim();
-            if (n && !users.value.includes(n)) { users.value.push(n); form.value.involved.push(n); if(!form.value.payer) form.value.payer = n; newUser.value = ""; }
-        };
-
-        const addExpense = () => {
-            if (!form.value.item || !form.value.amount || !form.value.payer) return alert("請填寫正確資料");
-            expenses.value.unshift({ id: Date.now(), ...form.value, hkd: form.value.amount * currentRate.value
