@@ -3,116 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>旅行公數易 MathGod2 (精簡版)</title>
+    <title>MathGod2 - Shareable Evergreen</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #121212; color: #e5e7eb; font-family: sans-serif; }
+        .evergreen-gradient { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); }
+        .dark-card { background-color: #1e1e1e; border: 1px solid #334155; }
+        .input-dark { background-color: #2d2d2d; border: 1px solid #475569; color: white; }
+        .no-export { display: none !important; } /* 用於生成圖片時隱藏按鈕 */
+        #share-area { background-color: #121212; padding: 20px; border-radius: 16px; }
+    </style>
 </head>
-<body class="bg-gray-100 min-h-screen pb-10">
-<div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-xl">
-    <header class="bg-indigo-600 text-white p-4 sticky top-0 z-10 shadow-md">
-        <h1 class="text-xl font-bold"><i class="fas fa-edit mr-2"></i>旅行公數易 (中日台專用)</h1>
+<body class="min-h-screen pb-10">
+<div id="app" class="max-w-md mx-auto min-h-screen bg-[#121212]">
+    
+    <header class="evergreen-gradient text-white p-6 sticky top-0 z-10 shadow-lg rounded-b-2xl">
+        <h1 class="text-2xl font-black tracking-tight flex justify-between items-center">
+            <span><i class="fas fa-leaf mr-2"></i>MATHGOD <span class="text-emerald-300">v2.3</span></span>
+            <button @click="generateImage" class="text-xs bg-white/20 px-3 py-1 rounded-full border border-white/30">
+                <i class="fas fa-camera mr-1"></i> 生成分享圖
+            </button>
+        </h1>
     </header>
 
     <div class="p-4 space-y-6">
-        <section v-if="!isEditing" class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-            <h2 class="font-bold text-indigo-800 mb-2 text-sm">1. 加入旅伴</h2>
+        <section v-if="!isEditing" :class="{'hidden': isExporting}" class="dark-card p-4 rounded-2xl">
+            <h2 class="font-bold text-emerald-400 mb-3 text-xs uppercase tracking-wider">1. 加入旅伴</h2>
             <div class="flex gap-2 mb-3">
-                <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名 (e.g. 明明)" class="flex-1 border p-2 rounded-lg text-sm">
-                <button @click="addUser" class="bg-indigo-600 text-white px-4 rounded-lg text-sm font-bold">加入</button>
+                <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名..." class="flex-1 input-dark p-2 rounded-xl text-sm">
+                <button @click="addUser" class="bg-emerald-600 text-white px-5 rounded-xl text-sm font-bold">加入</button>
             </div>
             <div class="flex flex-wrap gap-2">
-                <span v-for="(user, index) in users" :key="index" class="bg-white px-3 py-1 rounded-full shadow-sm text-xs flex items-center gap-2 border border-indigo-200">
-                    {{ user }} <button @click="removeUser(index)" class="text-red-400">×</button>
+                <span v-for="(u, i) in users" class="bg-emerald-900/30 text-emerald-300 px-3 py-1 rounded-full text-xs border border-emerald-800/50">
+                    {{ u }} <button @click="removeUser(i)" class="ml-1 opacity-50">×</button>
                 </span>
             </div>
         </section>
 
-        <section id="input-section" :class="isEditing ? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-white'" class="border rounded-xl p-4 shadow-sm transition-all">
-            <h2 class="font-bold text-gray-800 mb-3 text-sm border-b pb-2 flex justify-between">
-                <span>{{ isEditing ? '正在修改項目' : '2. 新增消費' }}</span>
-                <button v-if="isEditing" @click="cancelEdit" class="text-orange-600 text-xs font-bold">取消修改</button>
-            </h2>
+        <div id="capture-zone" class="space-y-6">
             
+            <section v-if="expenses.length > 0" class="bg-emerald-950/20 border border-emerald-900/40 p-5 rounded-3xl">
+                <h2 class="font-black text-emerald-400 text-sm mb-4 border-b border-emerald-900/50 pb-2 flex justify-between">
+                    <span>最終結算方案</span>
+                    <span class="text-gray-400 font-light">Total: HK${{ totalSpent.toFixed(0) }}</span>
+                </h2>
+                <div v-if="settlements.length === 0" class="text-center text-gray-600 py-4 text-sm italic">所有帳目已清</div>
+                <div class="space-y-3">
+                    <div v-for="(s, i) in settlements" :key="i" class="flex items-center justify-between bg-[#1a1a1a] p-4 rounded-2xl border border-slate-800">
+                        <div class="text-xs">
+                            <span class="text-rose-400 font-bold">{{ s.from }}</span>
+                            <i class="fas fa-arrow-right mx-3 opacity-20 text-white"></i>
+                            <span class="text-emerald-400 font-bold">{{ s.to }}</span>
+                        </div>
+                        <span class="font-mono text-lg text-yellow-400 font-bold italic">HK${{ s.amount.toFixed(1) }}</span>
+                    </div>
+                </div>
+            </section>
+
+            <div v-if="expenses.length > 0">
+                <h3 class="font-bold text-gray-600 text-[10px] mb-3 uppercase tracking-widest ml-1">Expense Log</h3>
+                <div class="space-y-3">
+                    <div v-for="(exp, idx) in expenses" class="dark-card p-4 rounded-2xl flex justify-between items-center border-l-4 border-emerald-600">
+                        <div class="text-sm">
+                            <div class="font-bold text-gray-200">{{ exp.item }}</div>
+                            <div class="text-[10px] text-gray-500 mt-1">
+                                <span class="text-emerald-500">{{ exp.payer }}</span> 
+                                支付 {{ exp.currency }} {{ exp.amount }} 
+                                <span class="mx-1 opacity-30">|</span> 
+                                HK${{ exp.hkd.toFixed(1) }}
+                            </div>
+                        </div>
+                        <div v-if="!isExporting" class="flex gap-4">
+                            <button @click="startEdit(idx)" class="text-slate-600"><i class="fas fa-pen"></i></button>
+                            <button @click="removeExpense(idx)" class="text-slate-600"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="isExporting" class="text-center pt-4 opacity-30 text-[10px] uppercase tracking-[0.5em]">
+                Generated by MathGod v2.3
+            </div>
+        </div>
+
+        <section v-if="!isExporting" id="input-section" :class="isEditing ? 'border-amber-500 ring-1 ring-amber-500' : 'border-slate-700'" class="dark-card rounded-2xl p-4 transition-all">
+            <h2 class="font-bold text-gray-400 mb-4 text-xs uppercase flex justify-between">
+                <span>{{ isEditing ? '修改紀錄' : '2. 新增消費' }}</span>
+                <button v-if="isEditing" @click="cancelEdit" class="text-amber-500 underline">取消</button>
+            </h2>
             <div class="space-y-4">
-                <input v-model="form.item" type="text" placeholder="消費項目 (e.g. 壽司)" class="w-full border p-2 rounded-lg text-sm">
-                
+                <input v-model="form.item" type="text" placeholder="消費項目" class="w-full input-dark p-3 rounded-xl text-sm">
                 <div class="flex gap-2">
-                    <select v-model="form.currency" @change="fetchRate" class="border p-2 rounded-lg bg-gray-50 text-sm w-1/3">
+                    <select v-model="form.currency" @change="fetchRate" class="input-dark p-3 rounded-xl text-sm w-1/3">
                         <option value="HKD">HKD</option>
                         <option value="JPY">JPY (日幣)</option>
                         <option value="TWD">TWD (台幣)</option>
                         <option value="CNY">CNY (人民幣)</option>
                     </select>
-                    <input v-model.number="form.amount" type="number" placeholder="金額" class="flex-1 border p-2 rounded-lg text-sm">
+                    <input v-model.number="form.amount" type="number" placeholder="金額" class="flex-1 input-dark p-3 rounded-xl text-sm text-right">
                 </div>
-
-                <div class="text-[10px] text-gray-400 flex justify-between px-1">
-                    <span>匯率: 1 {{form.currency}} = {{ currentRate.toFixed(4) }} HKD</span>
-                    <button @click="fetchRate" class="text-indigo-500 underline">更新匯率</button>
-                </div>
-                
                 <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="text-[11px] font-bold text-gray-500 block mb-1">邊個畀錢?</label>
-                        <select v-model="form.payer" class="w-full border p-2 rounded-lg text-sm bg-white">
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-gray-500 uppercase ml-1">誰付款</label>
+                        <select v-model="form.payer" class="w-full input-dark p-2 rounded-xl text-sm">
                             <option v-for="u in users" :value="u">{{ u }}</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="text-[11px] font-bold text-gray-500 block mb-1">邊個有份?</label>
-                        <div class="max-h-24 overflow-y-auto border rounded-lg p-2 text-xs bg-gray-50">
-                            <div v-for="u in users" :key="u" class="flex items-center gap-2 mb-1">
-                                <input type="checkbox" :value="u" v-model="form.involved" :id="'inv-'+u">
-                                <label :for="'inv-'+u">{{ u }}</label>
+                    <div class="space-y-1">
+                        <label class="text-[10px] text-gray-500 uppercase ml-1">參與者</label>
+                        <div class="max-h-24 overflow-y-auto input-dark rounded-xl p-2 text-[10px]">
+                            <div v-for="u in users" class="flex items-center gap-2 mb-1">
+                                <input type="checkbox" :value="u" v-model="form.involved" class="accent-emerald-500">
+                                <span>{{ u }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <button v-if="!isEditing" @click="addExpense" class="w-full bg-green-500 text-white font-bold py-3 rounded-xl shadow-lg">
-                    記帳 HK${{ (form.amount * currentRate).toFixed(1) }}
-                </button>
-                <button v-else @click="saveEdit" class="w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg">
-                    完成修改
+                <button @click="isEditing ? saveEdit() : addExpense()" :class="isEditing ? 'bg-amber-600' : 'evergreen-gradient'" class="w-full text-white font-black py-4 rounded-2xl shadow-lg">
+                    {{ isEditing ? '更新紀錄' : '記帳 HK$' + (form.amount * currentRate).toFixed(1) }}
                 </button>
             </div>
         </section>
 
-        <section v-if="expenses.length > 0" class="bg-gray-900 text-white p-5 rounded-2xl shadow-xl">
-            <h2 class="font-bold text-lg mb-4 flex justify-between items-center border-b border-gray-700 pb-2">
-                最終結算 <span class="text-xs font-normal opacity-60">總計: HK${{ totalSpent.toFixed(0) }}</span>
-            </h2>
-            <div v-if="settlements.length === 0" class="text-center text-gray-500 py-2">所有數已清！</div>
-            <div v-else class="space-y-3">
-                <div v-for="(s, i) in settlements" :key="i" class="flex items-center justify-between bg-gray-800 p-3 rounded-lg">
-                    <div class="text-sm">
-                        <span class="text-red-400 font-bold">{{ s.from }}</span>
-                        <i class="fas fa-long-arrow-alt-right mx-2 opacity-30"></i>
-                        <span class="text-green-400 font-bold">{{ s.to }}</span>
-                    </div>
-                    <span class="font-mono text-lg text-yellow-400 font-bold">HK${{ s.amount.toFixed(1) }}</span>
-                </div>
-            </div>
-        </section>
-
-        <div v-if="expenses.length > 0">
-            <h3 class="font-bold text-gray-400 text-xs mb-2 uppercase px-1 tracking-widest">消費記錄 (可修改)</h3>
-            <div class="space-y-2">
-                <div v-for="(exp, idx) in expenses" :key="exp.id" class="bg-white p-3 rounded-lg shadow-sm border-l-4 border-indigo-400 flex justify-between items-center">
-                    <div class="text-sm">
-                        <div class="font-bold text-gray-800">{{ exp.item }}</div>
-                        <div class="text-[10px] text-gray-400">{{ exp.payer }} 支付 {{ exp.currency }} {{ exp.amount }} (≈HK${{ exp.hkd.toFixed(1) }})</div>
-                    </div>
-                    <div class="flex gap-3">
-                        <button @click="startEdit(idx)" class="text-blue-400 hover:text-blue-600"><i class="fas fa-edit"></i></button>
-                        <button @click="removeExpense(idx)" class="text-red-200 hover:text-red-500"><i class="fas fa-trash"></i></button>
-                    </div>
-                </div>
-            </div>
+        <div v-if="previewImg" class="fixed inset-0 bg-black/90 z-50 flex flex-col items-center justify-center p-6">
+            <p class="text-emerald-400 font-bold mb-4">長按圖片儲存並分享</p>
+            <img :src="previewImg" class="max-w-full max-h-[70vh] rounded-xl shadow-2xl border border-white/20">
+            <button @click="previewImg = null" class="mt-8 bg-white/10 px-8 py-3 rounded-full border border-white/20">返回</button>
         </div>
-        
-        <button v-if="expenses.length > 0 && !isEditing" @click="clearAll" class="w-full py-4 text-[10px] text-red-400 opacity-40 hover:opacity-100 italic">重設所有數據</button>
+
     </div>
 </div>
 
@@ -122,6 +143,7 @@ createApp({
     setup() {
         const users = ref([]); const newUser = ref(""); const expenses = ref([]);
         const currentRate = ref(1); const isEditing = ref(false); const editIndex = ref(null);
+        const isExporting = ref(false); const previewImg = ref(null);
         const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
 
         const fetchRate = async () => {
@@ -129,56 +151,55 @@ createApp({
             try {
                 const res = await fetch(`https://open.er-api.com/v6/latest/${form.value.currency}`);
                 const data = await res.json();
-                if(data?.rates?.HKD) currentRate.value = data.rates.HKD;
+                currentRate.value = data.rates.HKD;
             } catch (e) { currentRate.value = 1; }
+        };
+
+        const generateImage = async () => {
+            isExporting.value = true;
+            // 等待 Vue 更新介面隱藏按鈕
+            setTimeout(async () => {
+                const canvas = await html2canvas(document.getElementById('capture-zone'), {
+                    backgroundColor: '#121212',
+                    scale: 2, // 提高解析度
+                });
+                previewImg.value = canvas.toDataURL('image/png');
+                isExporting.value = false;
+            }, 100);
         };
 
         const addUser = () => {
             if (newUser.value.trim() && !users.value.includes(newUser.value.trim())) {
-                const name = newUser.value.trim();
-                users.value.push(name);
-                form.value.involved.push(name);
-                if(!form.value.payer) form.value.payer = name;
+                users.value.push(newUser.value.trim());
+                form.value.involved.push(newUser.value.trim());
+                if(!form.value.payer) form.value.payer = newUser.value.trim();
                 newUser.value = "";
             }
         };
 
         const addExpense = () => {
-            if (!form.value.item || !form.value.amount || !form.value.payer || form.value.involved.length === 0) return alert("請填好所有資料！");
-            expenses.value.unshift({
-                id: Date.now(), ...form.value, hkd: form.value.amount * currentRate.value, involved: [...form.value.involved]
-            });
+            if (!form.value.item || !form.value.amount || !form.value.payer) return alert("資料不足");
+            expenses.value.unshift({ id: Date.now(), ...form.value, hkd: form.value.amount * currentRate.value, involved: [...form.value.involved] });
             form.value.item = ""; form.value.amount = "";
         };
 
-        const startEdit = (index) => {
-            isEditing.value = true;
-            editIndex.value = index;
-            const target = expenses.value[index];
-            form.value = { ...target, involved: [...target.involved] };
-            fetchRate(); // 確保修改時匯率正確
+        const startEdit = (i) => {
+            isEditing.value = true; editIndex.value = i;
+            form.value = { ...expenses.value[i], involved: [...expenses.value[i].involved] };
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
         const saveEdit = () => {
-            expenses.value[editIndex.value] = { 
-                ...form.value, hkd: form.value.amount * currentRate.value, involved: [...form.value.involved] 
-            };
-            cancelEdit();
-        };
-
-        const cancelEdit = () => {
-            isEditing.value = false; editIndex.value = null;
-            form.value = { item: "", amount: "", currency: "HKD", payer: users.value[0] || "", involved: [...users.value] };
-            fetchRate();
+            expenses.value[editIndex.value] = { ...form.value, hkd: form.value.amount * currentRate.value, involved: [...form.value.involved] };
+            isEditing.value = false; form.value.item = ""; form.value.amount = "";
         };
 
         const settlements = computed(() => {
             let balances = {}; users.value.forEach(u => balances[u] = 0);
             expenses.value.forEach(exp => {
-                if(balances[exp.payer] !== undefined) balances[exp.payer] += exp.hkd;
+                balances[exp.payer] += exp.hkd;
                 const split = exp.hkd / exp.involved.length;
-                exp.involved.forEach(p => { if(balances[p] !== undefined) balances[p] -= split; });
+                exp.involved.forEach(p => balances[p] -= split);
             });
             let debtors = [], creditors = [], res = [];
             for (let u in balances) {
@@ -196,14 +217,12 @@ createApp({
         });
 
         onMounted(() => {
-            const saved = localStorage.getItem('mathgod2_final_data');
-            if (saved) { const d = JSON.parse(saved); users.value = d.users || []; expenses.value = d.expenses || []; }
+            const saved = localStorage.getItem('mathgod2_v3');
+            if (saved) { const d = JSON.parse(saved); users.value = d.users; expenses.value = d.expenses; }
         });
-        watch([users, expenses], () => {
-            localStorage.setItem('mathgod2_final_data', JSON.stringify({users:users.value, expenses:expenses.value}));
-        }, {deep: true});
+        watch([users, expenses], () => localStorage.setItem('mathgod2_v3', JSON.stringify({users:users.value, expenses:expenses.value})), {deep: true});
 
-        return { users, newUser, form, expenses, currentRate, isEditing, fetchRate, addUser, addExpense, startEdit, saveEdit, cancelEdit, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)), removeUser: (i)=>users.value.splice(i,1), removeExpense: (i)=>confirm("確定刪除？") && expenses.value.splice(i,1), clearAll: ()=>confirm("清空所有資料？") && (expenses.value = []) };
+        return { users, newUser, form, expenses, currentRate, isEditing, isExporting, previewImg, fetchRate, addUser, addExpense, startEdit, saveEdit, cancelEdit:()=>isEditing.value=false, generateImage, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)), removeUser: (i)=>users.value.splice(i,1), removeExpense: (i)=>expenses.value.splice(i,1) };
     }
 }).mount('#app');
 </script>
