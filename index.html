@@ -16,12 +16,12 @@
         .input-bg { background-color: #2d2d2d; border: 1px solid rgba(255,255,255,0.1); color: white; }
         #capture-zone { background-color: #121212 !important; border-radius: 24px; padding: 24px; }
         
-        /* 2. 核心修復：撐開高度與寬度，防止 crop 字 */
+        /* 核心修復：保持這個不切字的設定 */
         .safe-render {
-            line-height: 1.8 !important;   /* 關鍵：加大行高，讓字體上下有空間 */
-            padding-bottom: 6px !important; /* 關鍵：底部強制留白，防止切腳 */
-            padding-right: 6px !important;  /* 右側留白，防止切邊 */
-            display: inline-block !important; /* 確保 padding 生效 */
+            line-height: 1.8 !important;
+            padding-bottom: 6px !important;
+            padding-right: 6px !important;
+            display: inline-block !important;
             vertical-align: middle;
         }
     </style>
@@ -30,14 +30,18 @@
 <div id="app" v-cloak class="max-w-md mx-auto min-h-screen relative pb-10">
     
     <header class="evergreen-gradient text-white p-6 sticky top-0 z-20 shadow-lg rounded-b-3xl">
-        <div class="flex justify-between items-center">
+        <div class="flex justify-between items-center mb-4">
             <h1 class="text-2xl font-black italic tracking-tighter">
                 <i class="fas fa-bolt mr-1 text-yellow-400"></i>數神
             </h1>
-            <div class="flex gap-2">
-                <button @click="showTextShare = true" class="bg-white/10 px-4 py-2 rounded-full border border-white/20 text-[10px] font-bold">文字Share</button>
-                <button @click="generateImage" class="bg-white/20 px-4 py-2 rounded-full border border-white/30 text-[10px] font-bold">截圖Share</button>
-            </div>
+            <label class="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-all">
+                <input type="checkbox" v-model="showDetails" class="accent-emerald-400 w-4 h-4 rounded">
+                <span class="text-[10px] font-bold uppercase tracking-wide">顯示詳情</span>
+            </label>
+        </div>
+        <div class="flex gap-2 justify-end">
+            <button @click="showTextShare = true" class="bg-white/10 px-4 py-2 rounded-full border border-white/20 text-[10px] font-bold">文字Share</button>
+            <button @click="generateImage" class="bg-white/20 px-4 py-2 rounded-full border border-white/30 text-[10px] font-bold">截圖Share</button>
         </div>
     </header>
 
@@ -56,7 +60,7 @@
         </section>
 
         <div id="capture-zone">
-            <section v-if="expenses.length > 0" class="bg-emerald-950/20 border border-emerald-900/40 p-6 rounded-[32px] mb-6">
+            <section v-if="expenses.length > 0" class="bg-emerald-950/20 border border-emerald-900/40 p-6 rounded-[32px] mb-2">
                 <div class="flex justify-between items-end mb-6">
                     <div>
                         <h2 class="font-black text-emerald-500 text-xl tracking-tight safe-render">最終結算</h2>
@@ -76,7 +80,13 @@
                 </div>
             </section>
 
-            <div v-if="expenses.length > 0" class="space-y-3">
+            <div v-if="expenses.length > 0 && showDetails" class="py-4 flex items-center gap-3 opacity-60">
+                <div class="h-px bg-gray-700 flex-1"></div>
+                <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest safe-render">消費詳情 Details</span>
+                <div class="h-px bg-gray-700 flex-1"></div>
+            </div>
+
+            <div v-if="expenses.length > 0 && showDetails" class="space-y-3">
                 <div v-for="(exp, idx) in expenses" :key="exp.id" class="card-bg p-4 rounded-2xl flex justify-between items-center border-l-4 border-emerald-600 shadow-sm relative">
                     <div class="flex-1 min-w-0 mr-4">
                         <div class="font-black text-sm text-gray-200 truncate safe-render">{{ exp.item }}</div>
@@ -96,7 +106,7 @@
             </div>
         </div>
 
-        <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border border-white/5">
+        <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border border-white/5 mt-6">
             <div class="space-y-5">
                 <input v-model="form.item" type="text" placeholder="項目" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
                 <div class="flex gap-2">
@@ -171,6 +181,7 @@ createApp({
         const users = ref([]); const newUser = ref(""); const expenses = ref([]);
         const currentRate = ref(1); const isEditing = ref(false); const editIndex = ref(null);
         const isExporting = ref(false); const previewImg = ref(null); const showTextShare = ref(false);
+        const showDetails = ref(true); // 新增：預設顯示詳情
         const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
 
         const fetchRate = async () => {
@@ -205,11 +216,7 @@ createApp({
             setTimeout(async () => {
                 const element = document.getElementById('capture-zone');
                 try {
-                    const canvas = await html2canvas(element, { 
-                        backgroundColor: '#121212', 
-                        scale: 2, 
-                        useCORS: true 
-                    });
+                    const canvas = await html2canvas(element, { backgroundColor: '#121212', scale: 2, useCORS: true });
                     previewImg.value = canvas.toDataURL('image/png');
                 } catch (err) { alert("截圖失敗"); }
                 isExporting.value = false;
@@ -217,9 +224,7 @@ createApp({
         };
 
         const downloadImage = () => { const link = document.createElement('a'); link.download = `MathGod.png`; link.href = previewImg.value; link.click(); };
-        const shareImage = async () => {
-            try { const res = await fetch(previewImg.value); const blob = await res.blob(); const file = new File([blob], 'settlement.png', { type: 'image/png' }); if (navigator.share) await navigator.share({ files: [file] }); } catch(e) {}
-        };
+        const shareImage = async () => { try { const res = await fetch(previewImg.value); const blob = await res.blob(); const file = new File([blob], 'settlement.png', { type: 'image/png' }); if (navigator.share) await navigator.share({ files: [file] }); } catch(e) {} };
         const clearAll = () => { if(confirm("確定清空紀錄？")) expenses.value = []; };
         const copyText = () => { navigator.clipboard.writeText(shareMessage.value); alert("已複製！"); };
         const shareWhatsApp = () => { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage.value)}`); };
@@ -246,9 +251,17 @@ createApp({
             return res;
         });
 
+        // 修正：文字分享也受 showDetails 控制
         const shareMessage = computed(() => {
-            let msg = `⚡️ 【數神 MathGod】結算\n📊 總支出：HK$${expenses.value.reduce((s,e)=>s+e.hkd,0).toFixed(1)}\n\n找數：\n`;
+            let msg = `⚡️ 【數神 MathGod】結算\n📊 總支出：HK$${expenses.value.reduce((s,e)=>s+e.hkd,0).toFixed(1)}\n\n✅ 找數：\n`;
             settlements.value.forEach(s => msg += `🔹 ${s.from} ➔ ${s.to}：HK$${s.amount.toFixed(1)}\n`);
+            
+            if (showDetails.value && expenses.value.length > 0) {
+                msg += `\n📝 消費詳情：\n`;
+                expenses.value.forEach(e => {
+                    msg += `▫️ ${e.item} (${e.payer})：${e.currency}${e.amount}\n`;
+                });
+            }
             return msg;
         });
 
@@ -259,7 +272,7 @@ createApp({
         watch([users, expenses], () => { localStorage.setItem('mathgod_v54_data', JSON.stringify({ users: users.value, expenses: expenses.value })); }, {deep: true});
 
         return { 
-            users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage,
+            users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails,
             addUser, addExpense, startEdit, saveEdit, clearAll, copyText, shareWhatsApp, generateImage, downloadImage, shareImage, settlements,
             totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
             fetchRate, removeUser:(i)=>users.value.splice(i,1), removeExpense:(i)=>expenses.value.splice(i,1)
