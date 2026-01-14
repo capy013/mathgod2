@@ -17,6 +17,10 @@
         #capture-zone { background-color: #121212 !important; border-radius: 24px; padding: 24px; }
         .whatsapp-green { background-color: #25D366; color: white; }
         
+        .mode-btn { @apply px-3 py-1 rounded-lg text-[10px] font-bold transition-all border; }
+        .mode-active { @apply bg-emerald-600 border-emerald-500 text-white; }
+        .mode-inactive { @apply bg-white/5 border-white/10 text-gray-500; }
+
         .safe-render {
             line-height: 1.8 !important;
             padding-bottom: 6px !important;
@@ -111,9 +115,9 @@
 
         <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border border-white/5 mt-6">
             <div class="space-y-5">
-                <input v-model="form.item" type="text" placeholder="項目 (例如: 午飯)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
+                <input v-model="form.item" type="text" placeholder="項目 (例如: 晚餐)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
                 <div class="flex gap-2">
-                    <select v-model="form.currency" @change="fetchRate" class="input-bg p-4 rounded-2xl text-sm w-1/3 font-bold">
+                    <select v-model="form.currency" @change="handleCurrencyChange" class="input-bg p-4 rounded-2xl text-sm w-1/3 font-bold">
                         <option value="HKD">🇭🇰 HKD</option>
                         <option value="JPY">🇯🇵 JPY</option>
                         <option value="TWD">🇹🇼 TWD</option>
@@ -123,11 +127,18 @@
                     <input v-model.number="form.amount" type="number" placeholder="金額" class="input-bg flex-1 p-4 rounded-2xl text-sm text-right font-mono font-bold outline-none">
                 </div>
 
-                <div v-if="form.currency !== 'HKD'" class="bg-emerald-500/5 border border-emerald-500/20 p-4 rounded-2xl">
-                    <div class="flex justify-between items-center mb-1">
-                        <label class="text-[10px] font-bold text-emerald-500 uppercase tracking-wider">自訂匯率 (1 {{form.currency}} = ? HKD)</label>
+                <div v-if="form.currency !== 'HKD'" class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">匯率模式</span>
+                        <div class="flex gap-1">
+                            <button @click="rateMode = 'auto'" :class="rateMode === 'auto' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-white/5 border-white/10 text-gray-500'" class="px-3 py-1 rounded-lg text-[10px] font-bold transition-all border">即時匯率</button>
+                            <button @click="rateMode = 'manual'" :class="rateMode === 'manual' ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-white/5 border-white/10 text-gray-500'" class="px-3 py-1 rounded-lg text-[10px] font-bold transition-all border">自訂匯率</button>
+                        </div>
                     </div>
-                    <input v-model.number="currentRate" type="number" step="0.0001" class="input-bg w-full p-3 rounded-xl text-sm font-mono text-emerald-400 outline-none">
+                    <div class="relative">
+                        <input v-model.number="currentRate" :disabled="rateMode === 'auto'" type="number" step="0.0001" :class="rateMode === 'auto' ? 'opacity-50' : 'text-emerald-400'" class="input-bg w-full p-3 rounded-xl text-sm font-mono outline-none">
+                        <div v-if="rateMode === 'auto'" class="absolute right-3 top-3"><i class="fas fa-sync fa-spin text-emerald-500 text-xs"></i></div>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
@@ -186,18 +197,25 @@ const { createApp, ref, computed, watch, onMounted } = Vue;
 createApp({
     setup() {
         const users = ref([]); const newUser = ref(""); const expenses = ref([]);
-        const currentRate = ref(1); const isEditing = ref(false); const editIndex = ref(null);
+        const currentRate = ref(1); const rateMode = ref('auto');
+        const isEditing = ref(false); const editIndex = ref(null);
         const isExporting = ref(false); const previewImg = ref(null); const showTextShare = ref(false);
         const showDetails = ref(true);
         const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
 
         const fetchRate = async () => {
             if(form.value.currency === 'HKD') { currentRate.value = 1; return; }
+            if(rateMode.value === 'manual') return; // 手動模式不自動更新
             try { 
                 const res = await fetch(`https://open.er-api.com/v6/latest/${form.value.currency}`); 
                 const data = await res.json(); 
                 currentRate.value = data.rates.HKD || 1; 
             } catch (e) { currentRate.value = 1; }
+        };
+
+        const handleCurrencyChange = () => {
+            if(form.value.currency === 'HKD') { rateMode.value = 'auto'; currentRate.value = 1; }
+            else { fetchRate(); }
         };
 
         const addUser = () => {
@@ -207,7 +225,13 @@ createApp({
 
         const addExpense = () => {
             if (!form.value.item || !form.value.amount || !form.value.payer) return alert("請填寫正確資料");
-            expenses.value.unshift({ id: Date.now(), ...form.value, hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value, involved: [...form.value.involved] });
+            expenses.value.unshift({ 
+                id: Date.now(), ...form.value, 
+                hkd: form.value.amount * currentRate.value, 
+                rateUsed: currentRate.value,
+                rateMode: rateMode.value,
+                involved: [...form.value.involved] 
+            });
             form.value.item = ""; form.value.amount = "";
         };
 
@@ -216,11 +240,17 @@ createApp({
             const exp = expenses.value[i];
             form.value = JSON.parse(JSON.stringify(exp));
             currentRate.value = exp.rateUsed || 1;
+            rateMode.value = exp.rateMode || 'auto';
             window.scrollTo({ top: document.getElementById('input-section').offsetTop - 100, behavior: 'smooth' });
         };
 
         const saveEdit = () => {
-            expenses.value[editIndex.value] = { ...form.value, hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value };
+            expenses.value[editIndex.value] = { 
+                ...form.value, 
+                hkd: form.value.amount * currentRate.value, 
+                rateUsed: currentRate.value,
+                rateMode: rateMode.value
+            };
             isEditing.value = false; form.value.item = ""; form.value.amount = "";
         };
 
@@ -276,9 +306,9 @@ createApp({
         watch([users, expenses], () => { localStorage.setItem('mathgod_v55_data', JSON.stringify({ users: users.value, expenses: expenses.value })); }, {deep: true});
 
         return { 
-            users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate,
+            users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, rateMode,
             addUser, addExpense, startEdit, saveEdit, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
-            fetchRate, generateImage, downloadImage:()=> { const l=document.createElement('a'); l.download='MathGod.png'; l.href=previewImg.value; l.click(); },
+            handleCurrencyChange, fetchRate, generateImage, downloadImage:()=> { const l=document.createElement('a'); l.download='MathGod.png'; l.href=previewImg.value; l.click(); },
             shareImage: async()=> { try{const r=await fetch(previewImg.value); const b=await r.blob(); const f=new File([b],'s.png',{type:'image/png'}); if(navigator.share) await navigator.share({files:[f]});}catch(e){} },
             copyText:()=> { navigator.clipboard.writeText(shareMessage.value); alert("已複製！"); },
             shareWhatsApp:()=> { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage.value)}`); },
