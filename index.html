@@ -2,15 +2,15 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>數神 MathGod － 香港人的夾錢APP </title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>數神 MathGod － 香港人的夾錢APP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         [v-cloak] { display: none; }
-        body { background-color: #121212; color: #e5e7eb; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #121212; color: #e5e7eb; -webkit-tap-highlight-color: transparent; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         .evergreen-gradient { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); }
         .card-bg { background-color: #1e1e1e; border: 1px solid rgba(255,255,255,0.05); }
         .input-bg { background-color: #2d2d2d; border: 1px solid rgba(255,255,255,0.1); color: white; }
@@ -18,6 +18,8 @@
         .tab-active { background-color: #10b981; color: white; }
         .tab-inactive { background-color: #2d2d2d; color: #6b7280; }
         .whatsapp-bg { background-color: #25D366; color: white; }
+        /* 防止截圖時出現多餘滾動條 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -29,7 +31,7 @@
                 <i class="fas fa-bolt mr-1 text-yellow-400"></i>數神
             </h1>
             <div class="flex gap-2">
-                <button @click="showTextShare = true" class="bg-white/10 px-4 py-2 rounded-full border border-white/20 text-[10px] font-bold active:scale-95 transition-all">
+                <button @click="openTextShare" class="bg-white/10 px-4 py-2 rounded-full border border-white/20 text-[10px] font-bold active:scale-95 transition-all">
                     <i class="fas fa-align-left mr-1"></i> 文字Share
                 </button>
                 <button @click="generateImage" class="bg-white/20 px-4 py-2 rounded-full border border-white/30 text-[10px] font-bold active:scale-95 transition-all">
@@ -40,20 +42,20 @@
     </header>
 
     <div class="p-4 space-y-6">
-        <section v-if="!isExporting" class="card-bg p-5 rounded-3xl shadow-sm">
+        <section v-if="!isExporting" class="card-bg p-5 rounded-3xl shadow-sm border border-white/5">
             <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">1. 加入朋友</h2>
             <div class="flex gap-2 mb-4">
-                <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名稱..." class="input-bg flex-1 p-3 rounded-2xl text-sm outline-none">
-                <button @click="addUser" class="bg-emerald-600 text-white px-6 rounded-2xl text-sm font-bold">加入</button>
+                <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名稱..." class="input-bg flex-1 p-3 rounded-2xl text-sm outline-none focus:border-emerald-500/50 transition-colors">
+                <button @click="addUser" class="bg-emerald-600 text-white px-6 rounded-2xl text-sm font-bold active:scale-95 transition-transform">加入</button>
             </div>
             <div class="flex flex-wrap gap-2">
-                <span v-for="(u, i) in users" :key="u" class="bg-emerald-500/10 text-emerald-500 px-4 py-2 rounded-xl text-xs border border-emerald-500/20 flex items-center gap-2 font-bold">
-                    {{ u }} <button @click="removeUser(i)" class="opacity-40">×</button>
+                <span v-for="(u, i) in users" :key="u" class="bg-emerald-500/10 text-emerald-500 px-4 py-2 rounded-xl text-xs border border-emerald-500/20 flex items-center gap-2 font-bold animate-in zoom-in duration-200">
+                    {{ u }} <button @click="removeUser(i)" class="opacity-40 hover:opacity-100">×</button>
                 </span>
             </div>
         </section>
 
-        <div id="capture-zone">
+        <div id="capture-zone" class="no-scrollbar">
             <section v-if="expenses.length > 0" class="bg-emerald-950/20 border border-emerald-900/40 p-6 rounded-[32px] mb-6">
                 <div class="flex justify-between items-end mb-6">
                     <div>
@@ -68,48 +70,56 @@
                 <div class="space-y-3">
                     <div v-for="(s, i) in settlements" :key="i" class="bg-black/40 border border-white/5 flex items-center justify-between p-4 rounded-2xl shadow-inner">
                         <div class="flex items-center gap-3">
-                            <span class="text-rose-500 font-black text-sm">{{ s.from }}</span>
+                            <span class="text-rose-400 font-black text-sm">{{ s.from }}</span>
                             <i class="fas fa-arrow-right text-[10px] text-gray-700"></i>
                             <span class="text-emerald-500 font-black text-sm">{{ s.to }}</span>
                         </div>
                         <span class="font-mono text-xl text-emerald-500 font-black italic">HK${{ s.amount.toFixed(1) }}</span>
+                    </div>
+                    <div v-if="settlements.length === 0" class="text-center py-4 text-gray-600 text-xs italic">
+                        暫時無須夾錢
                     </div>
                 </div>
             </section>
 
             <div v-if="expenses.length > 0" class="space-y-3">
                 <div v-for="(exp, idx) in expenses" :key="exp.id" class="card-bg p-4 rounded-2xl flex justify-between items-center border-l-4 border-emerald-600 shadow-sm relative">
-                    <div>
-                        <div class="font-black text-sm text-gray-200">{{ exp.item }}</div>
+                    <div class="flex-1 min-w-0 mr-4">
+                        <div class="font-black text-sm text-gray-200 truncate">{{ exp.item }}</div>
                         <div class="text-[10px] text-gray-500 mt-1">
                             <b class="text-emerald-600 uppercase">{{ exp.payer }}</b> 
                             付 {{ exp.currency }} {{ exp.amount }} 
-                            <span class="ml-1 opacity-40">(@{{ exp.rateUsed.toFixed(4) }} {{ exp.isManual ? '(手動)' : '(即時)' }})</span>
+                            <span class="ml-1 opacity-40">(@{{ exp.rateUsed.toFixed(4) }})</span>
                         </div>
                     </div>
                     <div class="text-right flex items-center gap-4">
                         <div class="font-mono font-bold text-gray-200">HK${{ exp.hkd.toFixed(1) }}</div>
                         <div v-if="!isExporting" class="flex gap-3 opacity-20 text-xs">
-                            <button @click="startEdit(idx)"><i class="fas fa-edit"></i></button>
-                            <button @click="removeExpense(idx)"><i class="fas fa-trash"></i></button>
+                            <button @click="startEdit(idx)" class="p-1"><i class="fas fa-edit"></i></button>
+                            <button @click="removeExpense(idx)" class="p-1 text-red-500"><i class="fas fa-trash"></i></button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border shadow-sm transition-all">
+        <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border border-white/5 shadow-sm transition-all">
             <div class="space-y-5">
-                <input v-model="form.item" type="text" placeholder="項目 (如: 買香蕉)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
+                <input v-model="form.item" type="text" placeholder="項目 (如: 買香蕉)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none focus:border-emerald-500/50">
                 
                 <div class="flex gap-2">
-                    <select v-model="form.currency" @change="fetchRate" class="input-bg p-4 rounded-2xl text-sm w-1/3 font-bold">
-                        <option value="HKD">HKD</option><option value="JPY">JPY</option>
-                        <option value="TWD">TWD</option><option value="CNY">CNY</option>
-                        <option value="THB">THB</option><option value="KRW">KRW</option>
-                        <option value="USD">USD</option><option value="GBP">GBP</option>
+                    <select v-model="form.currency" @change="fetchRate" class="input-bg p-4 rounded-2xl text-sm w-1/3 font-bold outline-none">
+                        <option value="HKD">🇭🇰 HKD</option>
+                        <option value="JPY">🇯🇵 JPY</option>
+                        <option value="TWD">🇹🇼 TWD</option>
+                        <option value="CNY">🇨🇳 CNY</option>
+                        <option value="THB">🇹🇭 THB</option>
+                        <option value="KRW">🇰🇷 KRW</option>
+                        <option value="USD">🇺🇸 USD</option>
+                        <option value="GBP">🇬🇧 GBP</option>
+                        <option value="EUR">🇪🇺 EUR</option>
                     </select>
-                    <input v-model.number="form.amount" type="number" placeholder="金額" class="input-bg flex-1 p-4 rounded-2xl text-sm text-right font-mono font-bold">
+                    <input v-model.number="form.amount" type="number" placeholder="金額" class="input-bg flex-1 p-4 rounded-2xl text-sm text-right font-mono font-bold outline-none">
                 </div>
 
                 <div v-if="form.currency !== 'HKD'" class="bg-black/20 p-4 rounded-2xl space-y-4 border border-white/5">
@@ -117,7 +127,6 @@
                         <button @click="rateMode = 'live'" :class="rateMode === 'live' ? 'tab-active' : 'tab-inactive'" class="flex-1 py-2 text-[10px] font-bold rounded-lg transition-all uppercase tracking-tighter">即時匯率</button>
                         <button @click="rateMode = 'manual'" :class="rateMode === 'manual' ? 'tab-active' : 'tab-inactive'" class="flex-1 py-2 text-[10px] font-bold rounded-lg transition-all uppercase tracking-tighter">自訂匯率</button>
                     </div>
-
                     <div class="flex items-center justify-between px-1">
                         <div class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">
                             {{ rateMode === 'live' ? 'Market Rate' : 'Custom Rate' }}
@@ -126,8 +135,7 @@
                             1 {{ form.currency }} = {{ currentRate.toFixed(4) }} HKD
                         </div>
                     </div>
-
-                    <div v-if="rateMode === 'manual'" class="flex items-center gap-3 animate-in fade-in duration-300">
+                    <div v-if="rateMode === 'manual'" class="flex items-center gap-3">
                         <span class="text-xs opacity-40 whitespace-nowrap">1 {{ form.currency }} = </span>
                         <input v-model.number="manualRate" type="number" step="0.0001" class="input-bg flex-1 p-3 rounded-xl text-sm font-mono text-emerald-400">
                         <span class="text-xs opacity-40">HKD</span>
@@ -137,13 +145,13 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-2">
                         <label class="text-[10px] font-bold text-gray-500 ml-1">誰付款？</label>
-                        <select v-model="form.payer" class="input-bg w-full p-3 rounded-2xl text-sm">
+                        <select v-model="form.payer" class="input-bg w-full p-3 rounded-2xl text-sm outline-none">
                             <option v-for="u in users" :key="u" :value="u">{{ u }}</option>
                         </select>
                     </div>
                     <div class="space-y-2">
                         <label class="text-[10px] font-bold text-gray-500 ml-1">誰參與？</label>
-                        <div class="input-bg max-h-32 overflow-y-auto rounded-2xl p-3 text-[10px]">
+                        <div class="input-bg max-h-32 overflow-y-auto rounded-2xl p-3 text-[10px] no-scrollbar">
                             <div v-for="u in users" :key="u" class="flex items-center gap-3 mb-2">
                                 <input type="checkbox" :value="u" v-model="form.involved" class="w-4 h-4 rounded accent-emerald-500">
                                 <span class="truncate">{{ u }}</span>
@@ -161,18 +169,18 @@
             </div>
         </section>
 
-        <div v-if="showTextShare" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-6" @click.self="showTextShare = false">
-            <div class="card-bg w-full max-w-sm rounded-[32px] p-6 flex flex-col gap-4 shadow-2xl border border-white/10">
+        <div v-if="showTextShare" class="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-6 animate-in fade-in duration-200" @click.self="showTextShare = false">
+            <div class="card-bg w-full max-w-sm rounded-[32px] p-6 flex flex-col gap-4 shadow-2xl border border-white/10 animate-in slide-in-from-bottom-4">
                 <div class="flex justify-between items-center mb-2">
                     <h3 class="font-black text-emerald-500 uppercase tracking-widest text-sm">文字結算清單</h3>
-                    <button @click="showTextShare = false" class="text-gray-500"><i class="fas fa-times"></i></button>
+                    <button @click="showTextShare = false" class="text-gray-500 p-2"><i class="fas fa-times"></i></button>
                 </div>
-                <textarea readonly class="input-bg w-full h-64 p-4 rounded-2xl text-xs font-mono leading-relaxed" v-model="shareMessage"></textarea>
+                <textarea readonly class="input-bg w-full h-64 p-4 rounded-2xl text-[13px] font-mono leading-relaxed resize-none focus:outline-none" v-model="shareMessage"></textarea>
                 <div class="grid grid-cols-2 gap-3">
-                    <button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold active:scale-95">
+                    <button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold active:scale-95 transition-transform">
                         <i class="fas fa-copy mr-2"></i> 複製文字
                     </button>
-                    <button @click="shareWhatsApp" class="whatsapp-bg py-4 rounded-2xl text-xs font-bold active:scale-95">
+                    <button @click="shareWhatsApp" class="whatsapp-bg py-4 rounded-2xl text-xs font-bold active:scale-95 transition-transform">
                         <i class="fab fa-whatsapp mr-2"></i> WhatsApp
                     </button>
                 </div>
@@ -180,15 +188,15 @@
         </div>
 
         <div v-if="expenses.length > 0 && !isExporting" class="px-4 text-center">
-            <button @click="clearAll" class="text-red-500/30 hover:text-red-500 text-[10px] font-bold uppercase py-2">
+            <button @click="clearAll" class="text-red-500/30 hover:text-red-500 text-[10px] font-bold uppercase py-2 transition-colors">
                 <i class="fas fa-trash-can mr-2"></i> 清除所有紀錄
             </button>
         </div>
 
-        <div v-if="previewImg" class="fixed inset-0 bg-black/98 z-50 flex flex-col items-center justify-center p-6" @click.self="previewImg = null">
-            <img :src="previewImg" class="max-w-full max-h-[80vh] rounded-2xl shadow-2xl border border-white/5">
-            <p class="text-gray-500 text-[10px] mt-4 uppercase tracking-[0.3em]">長按圖片儲存分享</p>
-            <button @click="previewImg = null" class="mt-8 bg-white/10 text-white px-12 py-3 rounded-full border border-white/10">返回</button>
+        <div v-if="previewImg" class="fixed inset-0 bg-black/98 z-[70] flex flex-col items-center justify-center p-6 animate-in fade-in" @click.self="previewImg = null">
+            <img :src="previewImg" class="max-w-full max-h-[75vh] rounded-2xl shadow-2xl border border-white/5">
+            <p class="text-emerald-500 text-[11px] mt-6 font-bold uppercase tracking-[0.2em] animate-pulse">長按圖片即可儲存 / 分享</p>
+            <button @click="previewImg = null" class="mt-8 bg-white/10 text-white px-12 py-3 rounded-full border border-white/10 active:scale-95">返回</button>
         </div>
     </div>
 </div>
@@ -216,11 +224,19 @@ createApp({
 
         const addUser = () => {
             const n = newUser.value.trim();
-            if (n && !users.value.includes(n)) { users.value.push(n); form.value.involved.push(n); if(!form.value.payer) form.value.payer = n; newUser.value = ""; }
+            if (n && !users.value.includes(n)) { 
+                users.value.push(n); 
+                form.value.involved.push(n); 
+                if(!form.value.payer) form.value.payer = n; 
+                newUser.value = ""; 
+            }
         };
 
         const addExpense = () => {
-            if (!form.value.item || !form.value.amount || !form.value.payer || form.value.involved.length === 0) return;
+            if (!form.value.item || !form.value.amount || !form.value.payer || form.value.involved.length === 0) {
+                alert("請填寫完整資料並選擇參與者");
+                return;
+            }
             const rateToUse = (form.value.currency === 'HKD') ? 1 : (rateMode.value === 'live' ? currentRate.value : manualRate.value);
             expenses.value.unshift({ 
                 id: Date.now(), ...form.value, 
@@ -257,38 +273,56 @@ createApp({
         const clearAll = () => { if(confirm("確定要清除所有紀錄？")) { expenses.value = []; users.value = []; localStorage.removeItem('mathgod_v48_data'); location.reload(); } };
 
         const generateImage = async () => {
+            if(expenses.value.length === 0) return alert("未有紀錄");
             isExporting.value = true;
             setTimeout(async () => {
                 const element = document.getElementById('capture-zone');
                 try {
-                    const canvas = await html2canvas(element, { backgroundColor: '#121212', scale: 3, useCORS: true });
+                    const canvas = await html2canvas(element, { 
+                        backgroundColor: '#121212', 
+                        scale: 3, 
+                        useCORS: true,
+                        logging: false
+                    });
                     previewImg.value = canvas.toDataURL('image/png', 1.0);
-                } catch (err) { alert("生成失敗"); }
+                } catch (err) { alert("截圖生成失敗，請重試"); }
                 isExporting.value = false;
             }, 500);
         };
 
-        // 人性化文字生成
+        const openTextShare = () => {
+            if(expenses.value.length === 0) return alert("未有紀錄");
+            document.activeElement.blur(); // 收起鍵盤
+            showTextShare.value = true;
+        };
+
         const shareMessage = computed(() => {
-            if (expenses.value.length === 0) return "暫時未有記帳紀錄。";
-            let msg = `💰 【數神】結算清單\n`;
-            msg += `--------------------------\n`;
+            if (expenses.value.length === 0) return "";
+            let msg = `⚡️ 【數神 MathGod】結算清單\n`;
+            msg += `━━━━━━━━━━━━━━\n`;
             msg += `📊 總支出：HK$${totalSpent.value.toFixed(1)}\n\n`;
-            msg += `📝 結算詳情：\n`;
-            settlements.value.forEach(s => {
-                msg += `👉 ${s.from} 付 HK$${s.amount.toFixed(1)} 給 ${s.to}\n`;
-            });
-            msg += `\n🍌 消費清單：\n`;
+            
+            if (settlements.value.length > 0) {
+                msg += `💰 找數安排：\n`;
+                settlements.value.forEach(s => {
+                    msg += `🔹 ${s.from} ➔ ${s.to}：HK$${s.amount.toFixed(1)}\n`;
+                });
+            } else {
+                msg += `✅ 已全部抵消，無須找數\n`;
+            }
+
+            msg += `\n📝 消費項目：\n`;
             expenses.value.forEach(e => {
-                msg += `• ${e.item}: HK$${e.hkd.toFixed(1)} (${e.payer}付)\n`;
+                msg += `• ${e.item} (${e.payer}付): HK$${e.hkd.toFixed(1)}\n`;
             });
-            msg += `\n大家快啲夾錢啦！😎`;
+            msg += `\n大家快啲 PayMe/FPS 啦！😎`;
             return msg;
         });
 
         const copyText = () => {
-            navigator.clipboard.writeText(shareMessage.value);
-            alert("已複製到剪貼簿！");
+            navigator.clipboard.writeText(shareMessage.value).then(() => {
+                alert("已複製！可以直接貼上分享");
+            });
         };
 
         const shareWhatsApp = () => {
@@ -300,7 +334,7 @@ createApp({
             let balances = {}; users.value.forEach(u => balances[u] = 0);
             expenses.value.forEach(exp => {
                 balances[exp.payer] += exp.hkd;
-                const split = exp.hkd / exp.involved.length;
+                const split = exp.hkd / (exp.involved.length || 1);
                 exp.involved.forEach(p => { if(balances[p] !== undefined) balances[p] -= split; });
             });
             let debtors = [], creditors = [], res = [];
@@ -336,7 +370,7 @@ createApp({
             }));
         }, {deep: true});
 
-        return { users, newUser, form, expenses, currentRate, manualRate, rateMode, isEditing, isExporting, previewImg, showTextShare, shareMessage, copyText, shareWhatsApp, fetchRate, addUser, addExpense, startEdit, saveEdit, cancelEdit:()=>isEditing.value=false, generateImage, clearAll, settlements, totalSpent, removeUser: (i)=>users.value.splice(i,1), removeExpense: (i)=>expenses.value.splice(i,1) };
+        return { users, newUser, form, expenses, currentRate, manualRate, rateMode, isEditing, isExporting, previewImg, showTextShare, openTextShare, shareMessage, copyText, shareWhatsApp, fetchRate, addUser, addExpense, startEdit, saveEdit, cancelEdit:()=>isEditing.value=false, generateImage, clearAll, settlements, totalSpent, removeUser: (i)=>users.value.splice(i,1), removeExpense: (i)=>expenses.value.splice(i,1) };
     }
 }).mount('#app');
 </script>
