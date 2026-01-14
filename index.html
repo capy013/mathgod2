@@ -37,7 +37,7 @@
             </h1>
             <label class="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-all">
                 <input type="checkbox" v-model="showDetails" class="accent-emerald-400 w-4 h-4 rounded">
-                <span class="text-[10px] font-bold uppercase tracking-wide">顯示詳情</span>
+                <span class="text-[10px] font-bold uppercase tracking-wide">列出消費詳情</span>
             </label>
         </div>
         <div class="flex gap-2 justify-end">
@@ -48,7 +48,7 @@
 
     <div class="p-4 space-y-6">
         <section v-if="!isExporting" class="card-bg p-5 rounded-3xl shadow-sm">
-            <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">1. 加入朋友</h2>
+            <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">加入朋友</h2>
             <div class="flex gap-2 mb-4">
                 <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名稱..." class="input-bg flex-1 p-3 rounded-2xl text-sm outline-none">
                 <button @click="addUser" class="bg-emerald-600 text-white px-6 rounded-2xl text-sm font-bold">加入</button>
