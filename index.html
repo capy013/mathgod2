@@ -276,9 +276,9 @@ createApp({
             msg += `📊 總支出：HK$${totalSpent.value.toFixed(1)}\n\n`;
             msg += `📝 結算詳情：\n`;
             settlements.value.forEach(s => {
-                msg += `👉 ${s.from} 俾 HK$${s.amount.toFixed(1)} 予 ${s.to}\n`;
+                msg += `👉 ${s.from} 付 HK$${s.amount.toFixed(1)} 給 ${s.to}\n`;
             });
-            msg += `\n🍕 消費清單：\n`;
+            msg += `\n🍌 消費清單：\n`;
             expenses.value.forEach(e => {
                 msg += `• ${e.item}: HK$${e.hkd.toFixed(1)} (${e.payer}付)\n`;
             });
