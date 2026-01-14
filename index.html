@@ -3,18 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>數神 MathGod v4.6</title>
+    <title>數神 MathGod v4.7</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         [v-cloak] { display: none; }
-        body { background-color: #121212; color: #e5e7eb; }
+        body { background-color: #121212; color: #e5e7eb; -webkit-tap-highlight-color: transparent; }
         .evergreen-gradient { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); }
         .card-bg { background-color: #1e1e1e; border: 1px solid rgba(255,255,255,0.05); }
         .input-bg { background-color: #2d2d2d; border: 1px solid rgba(255,255,255,0.1); color: white; }
         #capture-zone { background-color: #121212 !important; border-radius: 24px; padding: 20px; }
+        input[type="checkbox"] { width: 1.2rem; height: 1.2rem; accent-color: #10b981; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -53,7 +54,7 @@
                         <p class="text-[10px] text-gray-500 uppercase">Settlement</p>
                     </div>
                     <div class="text-right">
-                        <span class="text-[10px] text-gray-600 block uppercase font-bold">Total</span>
+                        <span class="text-[10px] text-gray-600 block uppercase font-bold">Total Spent</span>
                         <span class="font-mono font-bold text-emerald-500 text-lg">HK${{ totalSpent.toFixed(1) }}</span>
                     </div>
                 </div>
@@ -76,7 +77,8 @@
                         <div class="text-[10px] text-gray-500 mt-1">
                             <b class="text-emerald-600 uppercase">{{ exp.payer }}</b> 
                             付 {{ exp.currency }} {{ exp.amount }} 
-                            <span v-if="exp.appliedFee > 0" class="ml-1">(含 {{ exp.appliedFee }}% 匯率手續費)</span>
+                            <span v-if="exp.appliedFee > 0" class="ml-1 text-yellow-600">(含{{ exp.appliedFee }}%手續費)</span>
+                            <span v-else-if="exp.currency !== 'HKD'" class="ml-1 text-gray-600">(免手續費)</span>
                         </div>
                     </div>
                     <div class="text-right flex items-center gap-4">
@@ -97,7 +99,7 @@
             </h2>
 
             <div class="space-y-5">
-                <input v-model="form.item" type="text" placeholder="項目 (如: 拉麵)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
+                <input v-model="form.item" type="text" placeholder="項目 (如: 大阪燒肉)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
                 
                 <div class="flex gap-2">
                     <select v-model="form.currency" @change="fetchRate" class="input-bg p-4 rounded-2xl text-sm w-1/3 font-bold">
@@ -109,17 +111,21 @@
                     <input v-model.number="form.amount" type="number" placeholder="金額" class="input-bg flex-1 p-4 rounded-2xl text-sm text-right font-mono font-bold">
                 </div>
 
-                <div v-if="form.currency !== 'HKD'" class="bg-yellow-500/5 border border-yellow-500/20 p-4 rounded-2xl animate-in fade-in duration-300">
-                    <div class="flex justify-between items-center mb-2">
-                        <label class="text-[10px] font-bold text-yellow-500 uppercase tracking-widest">銀行匯率手續費</label>
-                        <span class="text-[10px] text-yellow-500/60 font-mono">1 {{ form.currency }} ≈ {{ (currentRate * (1 + feePercent/100)).toFixed(4) }} HKD</span>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <input type="range" v-model.number="feePercent" min="0" max="5" step="0.05" class="flex-1 h-1 bg-yellow-900 rounded-lg appearance-none cursor-pointer accent-yellow-500">
-                        <div class="flex items-center gap-1 min-w-[60px] justify-end">
-                            <input v-model.number="feePercent" type="number" class="bg-transparent text-yellow-500 font-bold text-sm w-10 text-right outline-none">
-                            <span class="text-xs text-yellow-500">%</span>
+                <div v-if="form.currency !== 'HKD'" class="bg-emerald-950/20 border border-emerald-900/30 p-4 rounded-2xl space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="useFee" v-model="useFee">
+                            <label for="useFee" class="text-xs font-bold text-emerald-500 cursor-pointer">計算銀行手續費</label>
                         </div>
+                        <span class="text-[10px] text-gray-500 font-mono">1 {{ form.currency }} ≈ {{ currentRate.toFixed(4) }} HKD</span>
+                    </div>
+                    
+                    <div v-if="useFee" class="animate-in slide-in-from-top-2 duration-200">
+                        <div class="flex justify-between items-center mb-2 text-[10px] text-yellow-500 font-bold uppercase tracking-widest">
+                            <span>手續費百分比</span>
+                            <span>{{ feePercent }}%</span>
+                        </div>
+                        <input type="range" v-model.number="feePercent" min="0" max="5" step="0.05" class="w-full h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-yellow-500">
                     </div>
                 </div>
 
@@ -141,7 +147,7 @@
                     </div>
                 </div>
                 <button @click="isEditing ? saveEdit() : addExpense()" :class="isEditing ? 'bg-amber-600' : 'evergreen-gradient'" class="w-full text-white font-black py-5 rounded-[20px] shadow-xl active:scale-95 transition-all text-sm uppercase tracking-widest">
-                    {{ isEditing ? '儲存修改' : '確認記帳 HK$' + (form.amount * currentRate * (1 + (form.currency === 'HKD' ? 0 : feePercent)/100)).toFixed(1) }}
+                    {{ isEditing ? '儲存修改' : '確認記帳 HK$' + (form.amount * currentRate * (1 + (useFee && form.currency !== 'HKD' ? feePercent : 0)/100)).toFixed(1) }}
                 </button>
             </div>
         </section>
@@ -164,7 +170,7 @@ const { createApp, ref, computed, watch, onMounted } = Vue;
 createApp({
     setup() {
         const users = ref([]); const newUser = ref(""); const expenses = ref([]);
-        const currentRate = ref(1); const feePercent = ref(1.95); 
+        const currentRate = ref(1); const feePercent = ref(1.95); const useFee = ref(true);
         const isEditing = ref(false); const editIndex = ref(null);
         const isExporting = ref(false); const previewImg = ref(null);
         const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
@@ -185,7 +191,7 @@ createApp({
 
         const addExpense = () => {
             if (!form.value.item || !form.value.amount || !form.value.payer || form.value.involved.length === 0) return;
-            const appliedFee = form.value.currency === 'HKD' ? 0 : feePercent.value;
+            const appliedFee = (useFee.value && form.value.currency !== 'HKD') ? feePercent.value : 0;
             const finalHkd = form.value.amount * currentRate.value * (1 + appliedFee / 100);
             expenses.value.unshift({ id: Date.now(), ...form.value, hkd: finalHkd, appliedFee: appliedFee, involved: [...form.value.involved] });
             form.value.item = ""; form.value.amount = "";
@@ -194,18 +200,19 @@ createApp({
         const startEdit = (i) => { 
             isEditing.value = true; editIndex.value = i; 
             form.value = { ...expenses.value[i], involved: [...expenses.value[i].involved] }; 
-            feePercent.value = expenses.value[i].appliedFee || 1.95;
+            useFee.value = expenses.value[i].appliedFee > 0;
+            if(useFee.value) feePercent.value = expenses.value[i].appliedFee;
             fetchRate(); 
         };
 
         const saveEdit = () => {
-            const appliedFee = form.value.currency === 'HKD' ? 0 : feePercent.value;
+            const appliedFee = (useFee.value && form.value.currency !== 'HKD') ? feePercent.value : 0;
             const finalHkd = form.value.amount * currentRate.value * (1 + appliedFee / 100);
             expenses.value[editIndex.value] = { ...form.value, hkd: finalHkd, appliedFee: appliedFee, involved: [...form.value.involved] };
             isEditing.value = false; form.value.item = ""; form.value.amount = "";
         };
 
-        const clearAll = () => { if(confirm("確定要清除所有紀錄？")) { expenses.value = []; users.value = []; localStorage.removeItem('mathgod_v46_data'); location.reload(); } };
+        const clearAll = () => { if(confirm("確定要清除所有紀錄？")) { expenses.value = []; users.value = []; localStorage.removeItem('mathgod_v47_data'); location.reload(); } };
 
         const generateImage = async () => {
             isExporting.value = true;
@@ -242,14 +249,14 @@ createApp({
         });
 
         onMounted(() => {
-            const saved = localStorage.getItem('mathgod_v46_data');
-            if (saved) { const d = JSON.parse(saved); users.value = d.users || []; expenses.value = d.expenses || []; feePercent.value = d.feePercent || 1.95; }
+            const saved = localStorage.getItem('mathgod_v47_data');
+            if (saved) { const d = JSON.parse(saved); users.value = d.users || []; expenses.value = d.expenses || []; feePercent.value = d.feePercent || 1.95; useFee.value = d.useFee !== undefined ? d.useFee : true; }
         });
-        watch([users, expenses, feePercent], () => {
-            localStorage.setItem('mathgod_v46_data', JSON.stringify({ users: users.value, expenses: expenses.value, feePercent: feePercent.value }));
+        watch([users, expenses, feePercent, useFee], () => {
+            localStorage.setItem('mathgod_v47_data', JSON.stringify({ users: users.value, expenses: expenses.value, feePercent: feePercent.value, useFee: useFee.value }));
         }, {deep: true});
 
-        return { users, newUser, form, expenses, currentRate, feePercent, isEditing, isExporting, previewImg, fetchRate, addUser, addExpense, startEdit, saveEdit, cancelEdit:()=>isEditing.value=false, generateImage, clearAll, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)), removeUser: (i)=>users.value.splice(i,1), removeExpense: (i)=>expenses.value.splice(i,1) };
+        return { users, newUser, form, expenses, currentRate, feePercent, useFee, isEditing, isExporting, previewImg, fetchRate, addUser, addExpense, startEdit, saveEdit, cancelEdit:()=>isEditing.value=false, generateImage, clearAll, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)), removeUser: (i)=>users.value.splice(i,1), removeExpense: (i)=>expenses.value.splice(i,1) };
     }
 }).mount('#app');
 </script>
