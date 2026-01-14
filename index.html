@@ -18,9 +18,14 @@
         .tab-active { background-color: #10b981; color: white; }
         .tab-inactive { background-color: #2d2d2d; color: #6b7280; }
         .whatsapp-bg { background-color: #25D366; color: white; }
-        
-        /* 唯一的 CSS 修正：確保文字有足夠行高，防止截圖被切 */
-        .fix-text-crop { line-height: 1.4 !important; padding-bottom: 1px; }
+
+        /* 修復核心：強制所有文字保留渲染緩衝空間，防止 cap 圖切字 */
+        .fix-render { 
+            line-height: 1.5 !important; 
+            padding-right: 2px !important; 
+            display: inline-block; /* 讓寬度計算更準確 */
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -71,9 +76,9 @@
                 <div class="space-y-3">
                     <div v-for="(s, i) in settlements" :key="i" class="bg-black/40 border border-white/5 flex items-center justify-between p-4 rounded-2xl">
                         <div class="flex items-center gap-3">
-                            <span class="text-rose-400 font-black text-sm">{{ s.from }}</span>
+                            <span class="text-rose-400 font-black text-sm fix-render">{{ s.from }}</span>
                             <i class="fas fa-arrow-right text-[10px] text-gray-700"></i>
-                            <span class="text-emerald-500 font-black text-sm">{{ s.to }}</span>
+                            <span class="text-emerald-500 font-black text-sm fix-render">{{ s.to }}</span>
                         </div>
                         <span class="font-mono text-xl text-emerald-500 font-black italic">HK${{ s.amount.toFixed(1) }}</span>
                     </div>
@@ -83,9 +88,9 @@
             <div v-if="expenses.length > 0" class="space-y-3">
                 <div v-for="(exp, idx) in expenses" :key="exp.id" class="card-bg p-4 rounded-2xl flex justify-between items-center border-l-4 border-emerald-600 shadow-sm relative">
                     <div class="flex-1 min-w-0 mr-4">
-                        <div class="font-black text-sm text-gray-200 truncate fix-text-crop">{{ exp.item }}</div>
+                        <div class="font-black text-sm text-gray-200 truncate fix-render">{{ exp.item }}</div>
                         <div class="text-[10px] text-gray-500 mt-1">
-                            <b class="text-emerald-600 uppercase">{{ exp.payer }}</b> 付 {{ exp.currency }} {{ exp.amount }}
+                            <b class="text-emerald-600 uppercase fix-render">{{ exp.payer }}</b> 付 {{ exp.currency }} {{ exp.amount }}
                         </div>
                     </div>
                     <div class="text-right flex items-center gap-4">
@@ -116,15 +121,6 @@
                     </select>
                     <input v-model.number="form.amount" type="number" placeholder="金額" class="input-bg flex-1 p-4 rounded-2xl text-sm text-right font-mono font-bold outline-none">
                 </div>
-
-                <div v-if="form.currency !== 'HKD'" class="bg-black/20 p-4 rounded-2xl space-y-4 border border-white/5">
-                    <div class="flex rounded-xl overflow-hidden p-1 bg-black/40">
-                        <button @click="rateMode = 'live'" :class="rateMode === 'live' ? 'tab-active' : 'tab-inactive'" class="flex-1 py-2 text-[10px] font-bold rounded-lg">即時匯率</button>
-                        <button @click="rateMode = 'manual'" :class="rateMode === 'manual' ? 'tab-active' : 'tab-inactive'" class="flex-1 py-2 text-[10px] font-bold rounded-lg">自訂匯率</button>
-                    </div>
-                    <div class="text-center text-[10px] font-mono opacity-60">1 {{ form.currency }} = {{ (rateMode === 'live' ? currentRate : manualRate).toFixed(4) }} HKD</div>
-                </div>
-
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-2">
                         <label class="text-[10px] font-bold text-gray-500 ml-1">誰付款？</label>
@@ -142,7 +138,6 @@
                         </div>
                     </div>
                 </div>
-                
                 <button @click="isEditing ? saveEdit() : addExpense()" :class="isEditing ? 'bg-amber-600' : 'evergreen-gradient'" class="w-full text-white font-black py-5 rounded-[20px] shadow-xl active:scale-95 transition-all text-sm uppercase tracking-widest">
                     {{ isEditing ? '儲存修改' : '確認記帳' }}
                 </button>
@@ -155,7 +150,7 @@
                 <textarea readonly class="input-bg w-full h-64 p-4 rounded-2xl text-[13px] font-mono" v-model="shareMessage"></textarea>
                 <div class="grid grid-cols-2 gap-3">
                     <button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold">複製文字</button>
-                    <button @click="shareWhatsApp" class="whatsapp-bg py-4 rounded-2xl text-xs font-bold">WhatsApp</button>
+                    <button @click="shareWhatsApp" class="whatsapp-bg py-4 rounded-2xl text-xs font-bold font-bold">WhatsApp</button>
                 </div>
             </div>
         </div>
@@ -171,11 +166,10 @@
                         <i class="fas fa-share-nodes"></i> 分享圖片
                     </button>
                 </div>
-                <p class="text-white/40 text-[10px] mt-6 uppercase tracking-widest font-bold">或長按圖片儲存分享</p>
                 <button @click="previewImg = null" class="mt-8 text-emerald-500 text-xs font-bold underline">返回編輯</button>
             </div>
         </div>
-
+        
         <div v-if="expenses.length > 0 && !isExporting" class="px-4 text-center">
             <button @click="clearAll" class="text-red-500/30 hover:text-red-500 text-[10px] font-bold uppercase py-2">清除所有紀錄</button>
         </div>
@@ -242,6 +236,7 @@ createApp({
                     const canvas = await html2canvas(element, { 
                         backgroundColor: '#121212', 
                         scale: 2,
+                        logging: false,
                         useCORS: true
                     });
                     previewImg.value = canvas.toDataURL('image/png');
@@ -252,7 +247,7 @@ createApp({
 
         const downloadImage = () => {
             const link = document.createElement('a');
-            link.download = `MathGod_Settlement_${new Date().getTime()}.png`;
+            link.download = `MathGod_${new Date().getTime()}.png`;
             link.href = previewImg.value;
             link.click();
         };
@@ -262,11 +257,9 @@ createApp({
                 const res = await fetch(previewImg.value);
                 const blob = await res.blob();
                 const file = new File([blob], 'settlement.png', { type: 'image/png' });
-                if (navigator.share) await navigator.share({ files: [file], title: '數神結算單' });
+                if (navigator.share) await navigator.share({ files: [file] });
             } catch (err) { alert("分享失敗"); }
         };
-
-        const clearAll = () => { if(confirm("確定清空紀錄？")) expenses.value = []; };
 
         const settlements = computed(() => {
             let balances = {}; users.value.forEach(u => balances[u] = 0);
