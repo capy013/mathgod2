@@ -136,13 +136,11 @@
                     </div>
                 </div>
 
-                <div v-if="form.amount" class="text-center bg-black/20 py-2 rounded-xl border border-white/5">
-                    <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest mr-2">折合港幣約</span>
-                    <span class="text-emerald-400 font-mono font-bold italic">HK$ {{ (form.amount * currentRate).toFixed(1) }}</span>
-                </div>
-
                 <button @click="isEditing ? saveEdit() : addExpense()" :class="isEditing ? 'bg-amber-600' : 'evergreen-gradient'" class="w-full text-white font-black py-5 rounded-[20px] shadow-xl text-sm uppercase tracking-widest active:scale-95 transition-all">
                     {{ isEditing ? '儲存修改' : '確認記帳' }}
+                    <span v-if="form.amount" class="ml-1 opacity-90 text-xs font-mono">
+                        (HK${{ (form.amount * currentRate).toFixed(1) }})
+                    </span>
                 </button>
             </div>
         </section>
@@ -178,18 +176,19 @@
         <div class="card-bg w-full max-w-sm rounded-[32px] p-6 flex flex-col gap-4 shadow-2xl border border-white/10">
             <h3 class="font-black text-emerald-500 text-sm">文字結算</h3>
             <textarea readonly class="input-bg w-full h-64 p-4 rounded-2xl text-[13px] font-mono leading-relaxed" v-model="shareMessage"></textarea>
-            <div class="grid grid-cols-2 gap-3"><button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold">複製</button><button @click="shareWhatsApp" class="whatsapp-green py-4 rounded-2xl text-xs font-bold">WhatsApp</button></div>
+            <div class="grid grid-cols-2 gap-3"><button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold">複製文字</button><button @click="shareWhatsApp" class="whatsapp-green py-4 rounded-2xl text-xs font-bold">WhatsApp</button></div>
         </div>
     </div>
     <div v-if="previewImg" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex flex-col items-center justify-center p-6" @click.self="previewImg = null">
         <div class="w-full max-w-sm flex flex-col items-center">
             <img :src="previewImg" class="max-w-full max-h-[60vh] rounded-2xl shadow-2xl mb-8 border border-white/10">
-            <div class="grid grid-cols-2 gap-4 w-full"><button @click="downloadImage" class="bg-white/10 text-white border border-white/20 py-4 rounded-2xl text-xs font-bold">下載</button><button @click="shareImage" class="evergreen-gradient text-white py-4 rounded-2xl text-xs font-bold">分享</button></div>
+            <div class="grid grid-cols-2 gap-4 w-full"><button @click="downloadImage" class="bg-white/10 text-white border border-white/20 py-4 rounded-2xl text-xs font-bold">下載圖片</button><button @click="shareImage" class="evergreen-gradient text-white py-4 rounded-2xl text-xs font-bold">分享圖片</button></div>
         </div>
     </div>
 </div>
 
 <script>
+// Logic 保持不變，僅在模板中將計算邏輯移入 Button
 const { createApp, ref, computed, watch, onMounted } = Vue;
 createApp({
     setup() {
