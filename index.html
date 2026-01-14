@@ -17,10 +17,6 @@
         #capture-zone { background-color: #121212 !important; border-radius: 24px; padding: 24px; }
         .whatsapp-green { background-color: #25D366; color: white; }
         
-        .mode-btn { @apply px-3 py-1 rounded-lg text-[10px] font-bold transition-all border; }
-        .mode-active { @apply bg-emerald-600 border-emerald-500 text-white; }
-        .mode-inactive { @apply bg-white/5 border-white/10 text-gray-500; }
-
         .safe-render {
             line-height: 1.8 !important;
             padding-bottom: 6px !important;
@@ -54,11 +50,11 @@
             <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">1. 加入朋友</h2>
             <div class="flex gap-2 mb-4">
                 <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名稱..." class="input-bg flex-1 p-3 rounded-2xl text-sm outline-none">
-                <button @click="addUser" class="bg-emerald-600 text-white px-6 rounded-2xl text-sm font-bold">加入</button>
+                <button @click="addUser" class="bg-emerald-600 text-white px-6 rounded-2xl text-sm font-bold active:scale-95 transition-all">加入</button>
             </div>
             <div class="flex flex-wrap gap-2">
                 <span v-for="(u, i) in users" :key="u" class="bg-emerald-500/10 text-emerald-500 px-4 py-2 rounded-xl text-xs border border-emerald-500/20 flex items-center gap-2 font-bold">
-                    {{ u }} <button @click="removeUser(i)" class="opacity-40">×</button>
+                    {{ u }} <button @click="removeUser(i)" class="opacity-40 text-lg">&times;</button>
                 </span>
             </div>
         </section>
@@ -115,7 +111,7 @@
 
         <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border border-white/5 mt-6">
             <div class="space-y-5">
-                <input v-model="form.item" type="text" placeholder="項目 (例如: 晚餐)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
+                <input v-model="form.item" type="text" placeholder="項目 (例如: 午飯)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
                 <div class="flex gap-2">
                     <select v-model="form.currency" @change="handleCurrencyChange" class="input-bg p-4 rounded-2xl text-sm w-1/3 font-bold">
                         <option value="HKD">🇭🇰 HKD</option>
@@ -186,8 +182,10 @@
             </div>
         </div>
 
-        <div v-if="expenses.length > 0 && !isExporting" class="px-4 text-center">
-            <button @click="clearAll" class="text-red-500/30 text-[10px] font-bold uppercase py-2">清除所有紀錄</button>
+        <div v-if="expenses.length > 0 && !isExporting" class="px-4 py-6 text-center">
+            <button @click="clearAll" class="text-red-500/40 hover:text-red-500 text-[10px] font-bold uppercase tracking-widest py-2 transition-colors">
+                <i class="fas fa-trash-alt mr-1"></i> 清除所有紀錄
+            </button>
         </div>
     </div>
 </div>
@@ -205,7 +203,7 @@ createApp({
 
         const fetchRate = async () => {
             if(form.value.currency === 'HKD') { currentRate.value = 1; return; }
-            if(rateMode.value === 'manual') return; // 手動模式不自動更新
+            if(rateMode.value === 'manual') return;
             try { 
                 const res = await fetch(`https://open.er-api.com/v6/latest/${form.value.currency}`); 
                 const data = await res.json(); 
@@ -245,12 +243,7 @@ createApp({
         };
 
         const saveEdit = () => {
-            expenses.value[editIndex.value] = { 
-                ...form.value, 
-                hkd: form.value.amount * currentRate.value, 
-                rateUsed: currentRate.value,
-                rateMode: rateMode.value
-            };
+            expenses.value[editIndex.value] = { ...form.value, hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value, rateMode: rateMode.value };
             isEditing.value = false; form.value.item = ""; form.value.amount = "";
         };
 
@@ -299,6 +292,16 @@ createApp({
             }, 300);
         };
 
+        const clearAll = () => {
+            if(confirm("確定清空所有紀錄？（包括朋友名單及消費）")) {
+                expenses.value = [];
+                users.value = [];
+                form.value.involved = [];
+                form.value.payer = "";
+                localStorage.removeItem('mathgod_v55_data');
+            }
+        };
+
         onMounted(() => {
             const saved = localStorage.getItem('mathgod_v55_data');
             if (saved) { const d = JSON.parse(saved); users.value = d.users || []; expenses.value = d.expenses || []; }
@@ -312,8 +315,7 @@ createApp({
             shareImage: async()=> { try{const r=await fetch(previewImg.value); const b=await r.blob(); const f=new File([b],'s.png',{type:'image/png'}); if(navigator.share) await navigator.share({files:[f]});}catch(e){} },
             copyText:()=> { navigator.clipboard.writeText(shareMessage.value); alert("已複製！"); },
             shareWhatsApp:()=> { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage.value)}`); },
-            clearAll:()=> { if(confirm("清除？")) expenses.value=[]; },
-            removeUser:(i)=>users.value.splice(i,1), removeExpense:(i)=>expenses.value.splice(i,1)
+            clearAll, removeUser:(i)=>users.value.splice(i,1), removeExpense:(i)=>expenses.value.splice(i,1)
         };
     }
 }).mount('#app');
