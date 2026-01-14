@@ -47,7 +47,7 @@
 
     <div class="p-4 space-y-6">
         <section v-if="!isExporting" class="card-bg p-5 rounded-3xl shadow-sm">
-            <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">1. 加入朋友</h2>
+            <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">加入朋友</h2>
             <div class="flex gap-2 mb-4">
                 <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名稱..." class="input-bg flex-1 p-3 rounded-2xl text-sm outline-none">
                 <button @click="addUser" class="bg-emerald-600 text-white px-6 rounded-2xl text-sm font-bold active:scale-95 transition-all">加入</button>
@@ -270,7 +270,7 @@ createApp({
         });
 
         const shareMessage = computed(() => {
-            let msg = `⚡️ 【數神 MathGod】結算\n📊 總支出：HK$${expenses.value.reduce((s,e)=>s+e.hkd,0).toFixed(1)}\n\n✅ 埋單找數：\n`;
+            let msg = `⚡️最後結算\n📊 總支出：HK$${expenses.value.reduce((s,e)=>s+e.hkd,0).toFixed(1)}\n\n✅ 埋單計數：\n`;
             settlements.value.forEach(s => msg += `🔹 ${s.from} ➔ ${s.to}：HK$${s.amount.toFixed(1)}\n`);
             if (showDetails.value && expenses.value.length > 0) {
                 msg += `\n📝 消費詳情：\n`;
