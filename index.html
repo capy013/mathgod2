@@ -31,7 +31,7 @@
 
     <div class="p-4 space-y-6">
         <section v-if="!isEditing" :class="{'hidden': isExporting}" class="dark-card p-4 rounded-2xl">
-            <h2 class="font-bold text-emerald-400 mb-3 text-xs uppercase tracking-wider">1. 加入旅伴</h2>
+            <h2 class="font-bold text-emerald-400 mb-3 text-xs uppercase tracking-wider">1. 加入朋友</h2>
             <div class="flex gap-2 mb-3">
                 <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名..." class="flex-1 input-dark p-2 rounded-xl text-sm">
                 <button @click="addUser" class="bg-emerald-600 text-white px-5 rounded-xl text-sm font-bold">加入</button>
