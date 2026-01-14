@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>旅行公數易 MathGod2</title>
+    <title>旅行公數易 MathGod2 (精簡版)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -11,12 +11,11 @@
 <body class="bg-gray-100 min-h-screen pb-10">
 <div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-xl">
     <header class="bg-indigo-600 text-white p-4 sticky top-0 z-10 shadow-md">
-        <h1 class="text-xl font-bold"><i class="fas fa-calculator mr-2"></i>旅行公數易 v2</h1>
-        <p class="text-xs opacity-80 mt-1">MathGod2 • 自動匯率結算</p>
+        <h1 class="text-xl font-bold"><i class="fas fa-edit mr-2"></i>旅行公數易 (中日台專用)</h1>
     </header>
 
     <div class="p-4 space-y-6">
-        <section class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+        <section v-if="!isEditing" class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
             <h2 class="font-bold text-indigo-800 mb-2 text-sm">1. 加入旅伴</h2>
             <div class="flex gap-2 mb-3">
                 <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名 (e.g. 明明)" class="flex-1 border p-2 rounded-lg text-sm">
@@ -29,30 +28,34 @@
             </div>
         </section>
 
-        <section class="bg-white border rounded-xl p-4 shadow-sm border-gray-200">
-            <h2 class="font-bold text-gray-800 mb-3 text-sm border-b pb-2">2. 新增消費</h2>
+        <section id="input-section" :class="isEditing ? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-white'" class="border rounded-xl p-4 shadow-sm transition-all">
+            <h2 class="font-bold text-gray-800 mb-3 text-sm border-b pb-2 flex justify-between">
+                <span>{{ isEditing ? '正在修改項目' : '2. 新增消費' }}</span>
+                <button v-if="isEditing" @click="cancelEdit" class="text-orange-600 text-xs font-bold">取消修改</button>
+            </h2>
+            
             <div class="space-y-4">
-                <input v-model="newItem" type="text" placeholder="消費項目 (e.g. 燒肉)" class="w-full border p-2 rounded-lg text-sm">
+                <input v-model="form.item" type="text" placeholder="消費項目 (e.g. 壽司)" class="w-full border p-2 rounded-lg text-sm">
+                
                 <div class="flex gap-2">
-                    <select v-model="selectedCurrency" @change="fetchRate" class="border p-2 rounded-lg bg-gray-50 text-sm w-1/3">
+                    <select v-model="form.currency" @change="fetchRate" class="border p-2 rounded-lg bg-gray-50 text-sm w-1/3">
                         <option value="HKD">HKD</option>
-                        <option value="JPY">JPY (日元)</option>
+                        <option value="JPY">JPY (日幣)</option>
                         <option value="TWD">TWD (台幣)</option>
-                        <option value="KRW">KRW (韓圜)</option>
-                        <option value="THB">THB (泰銖)</option>
-                        <option value="EUR">EUR (歐羅)</option>
-                        <option value="USD">USD (美金)</option>
+                        <option value="CNY">CNY (人民幣)</option>
                     </select>
-                    <input v-model.number="newAmount" type="number" placeholder="金額" class="flex-1 border p-2 rounded-lg text-sm">
+                    <input v-model.number="form.amount" type="number" placeholder="金額" class="flex-1 border p-2 rounded-lg text-sm">
                 </div>
+
                 <div class="text-[10px] text-gray-400 flex justify-between px-1">
-                    <span>匯率: 1 {{selectedCurrency}} = {{ currentRate }} HKD</span>
-                    <button @click="fetchRate" class="text-indigo-500 underline">更新</button>
+                    <span>匯率: 1 {{form.currency}} = {{ currentRate.toFixed(4) }} HKD</span>
+                    <button @click="fetchRate" class="text-indigo-500 underline">更新匯率</button>
                 </div>
+                
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="text-[11px] font-bold text-gray-500 block mb-1">邊個畀錢?</label>
-                        <select v-model="payer" class="w-full border p-2 rounded-lg text-sm bg-white">
+                        <select v-model="form.payer" class="w-full border p-2 rounded-lg text-sm bg-white">
                             <option v-for="u in users" :value="u">{{ u }}</option>
                         </select>
                     </div>
@@ -60,28 +63,32 @@
                         <label class="text-[11px] font-bold text-gray-500 block mb-1">邊個有份?</label>
                         <div class="max-h-24 overflow-y-auto border rounded-lg p-2 text-xs bg-gray-50">
                             <div v-for="u in users" :key="u" class="flex items-center gap-2 mb-1">
-                                <input type="checkbox" :value="u" v-model="involvedUsers" :id="'inv-'+u">
+                                <input type="checkbox" :value="u" v-model="form.involved" :id="'inv-'+u">
                                 <label :for="'inv-'+u">{{ u }}</label>
                             </div>
                         </div>
                     </div>
                 </div>
-                <button @click="addExpense" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl shadow-lg transition-all">
-                    記帳 HK${{ (newAmount * currentRate).toFixed(1) }}
+
+                <button v-if="!isEditing" @click="addExpense" class="w-full bg-green-500 text-white font-bold py-3 rounded-xl shadow-lg">
+                    記帳 HK${{ (form.amount * currentRate).toFixed(1) }}
+                </button>
+                <button v-else @click="saveEdit" class="w-full bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg">
+                    完成修改
                 </button>
             </div>
         </section>
 
-        <section v-if="expenses.length > 0" class="bg-gray-900 text-white p-5 rounded-2xl shadow-2xl">
+        <section v-if="expenses.length > 0" class="bg-gray-900 text-white p-5 rounded-2xl shadow-xl">
             <h2 class="font-bold text-lg mb-4 flex justify-between items-center border-b border-gray-700 pb-2">
-                結算方案 <span class="text-xs font-normal opacity-60">總額: HK${{ totalSpent.toFixed(0) }}</span>
+                最終結算 <span class="text-xs font-normal opacity-60">總計: HK${{ totalSpent.toFixed(0) }}</span>
             </h2>
-            <div v-if="settlements.length === 0" class="text-center text-gray-500 py-2">冇人欠錢，數已清！</div>
+            <div v-if="settlements.length === 0" class="text-center text-gray-500 py-2">所有數已清！</div>
             <div v-else class="space-y-3">
                 <div v-for="(s, i) in settlements" :key="i" class="flex items-center justify-between bg-gray-800 p-3 rounded-lg">
                     <div class="text-sm">
                         <span class="text-red-400 font-bold">{{ s.from }}</span>
-                        <i class="fas fa-long-arrow-alt-right mx-2 text-gray-600"></i>
+                        <i class="fas fa-long-arrow-alt-right mx-2 opacity-30"></i>
                         <span class="text-green-400 font-bold">{{ s.to }}</span>
                     </div>
                     <span class="font-mono text-lg text-yellow-400 font-bold">HK${{ s.amount.toFixed(1) }}</span>
@@ -90,93 +97,115 @@
         </section>
 
         <div v-if="expenses.length > 0">
-            <h3 class="font-bold text-gray-400 text-xs mb-2 uppercase tracking-widest px-1">消費記錄</h3>
+            <h3 class="font-bold text-gray-400 text-xs mb-2 uppercase px-1 tracking-widest">消費記錄 (可修改)</h3>
             <div class="space-y-2">
-                <div v-for="(exp, idx) in expenses" :key="idx" class="bg-white p-3 rounded-lg shadow-sm border-l-4 border-indigo-400 flex justify-between items-center">
+                <div v-for="(exp, idx) in expenses" :key="exp.id" class="bg-white p-3 rounded-lg shadow-sm border-l-4 border-indigo-400 flex justify-between items-center">
                     <div class="text-sm">
                         <div class="font-bold text-gray-800">{{ exp.item }}</div>
-                        <div class="text-[10px] text-gray-400">{{ exp.payer }} 支付 {{ exp.originalCurrency }} {{ exp.originalAmount }}</div>
+                        <div class="text-[10px] text-gray-400">{{ exp.payer }} 支付 {{ exp.currency }} {{ exp.amount }} (≈HK${{ exp.hkd.toFixed(1) }})</div>
                     </div>
-                    <button @click="removeExpense(idx)" class="text-gray-300 hover:text-red-500"><i class="fas fa-times-circle"></i></button>
+                    <div class="flex gap-3">
+                        <button @click="startEdit(idx)" class="text-blue-400 hover:text-blue-600"><i class="fas fa-edit"></i></button>
+                        <button @click="removeExpense(idx)" class="text-red-200 hover:text-red-500"><i class="fas fa-trash"></i></button>
+                    </div>
                 </div>
             </div>
         </div>
         
-        <button v-if="expenses.length > 0" @click="clearAll" class="w-full py-4 text-xs text-red-400 opacity-50 hover:opacity-100 italic">重設所有數據</button>
+        <button v-if="expenses.length > 0 && !isEditing" @click="clearAll" class="w-full py-4 text-[10px] text-red-400 opacity-40 hover:opacity-100 italic">重設所有數據</button>
     </div>
 </div>
 
 <script>
-    const { createApp, ref, computed, watch, onMounted } = Vue;
-    createApp({
-        setup() {
-            const users = ref([]); const newUser = ref(""); const expenses = ref([]); const newItem = ref(""); 
-            const newAmount = ref(""); const selectedCurrency = ref("HKD"); const currentRate = ref(1); 
-            const payer = ref(""); const involvedUsers = ref([]);
+const { createApp, ref, computed, watch, onMounted } = Vue;
+createApp({
+    setup() {
+        const users = ref([]); const newUser = ref(""); const expenses = ref([]);
+        const currentRate = ref(1); const isEditing = ref(false); const editIndex = ref(null);
+        const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
 
-            const fetchRate = async () => {
-                if(selectedCurrency.value === 'HKD') { currentRate.value = 1; return; }
-                try {
-                    const res = await fetch(`https://open.er-api.com/v6/latest/${selectedCurrency.value}`);
-                    const data = await res.json();
-                    if(data?.rates?.HKD) currentRate.value = data.rates.HKD;
-                } catch (e) { console.error("Rate error"); }
-            };
+        const fetchRate = async () => {
+            if(form.value.currency === 'HKD') { currentRate.value = 1; return; }
+            try {
+                const res = await fetch(`https://open.er-api.com/v6/latest/${form.value.currency}`);
+                const data = await res.json();
+                if(data?.rates?.HKD) currentRate.value = data.rates.HKD;
+            } catch (e) { currentRate.value = 1; }
+        };
 
-            const addUser = () => {
-                if (newUser.value.trim() && !users.value.includes(newUser.value)) {
-                    users.value.push(newUser.value.trim());
-                    involvedUsers.value.push(newUser.value.trim());
-                    if(!payer.value) payer.value = newUser.value.trim();
-                    newUser.value = "";
-                }
-            };
+        const addUser = () => {
+            if (newUser.value.trim() && !users.value.includes(newUser.value.trim())) {
+                const name = newUser.value.trim();
+                users.value.push(name);
+                form.value.involved.push(name);
+                if(!form.value.payer) form.value.payer = name;
+                newUser.value = "";
+            }
+        };
 
-            const addExpense = () => {
-                if (!newItem.value || !newAmount.value || !payer.value || !involvedUsers.value.length) return alert("填好資料先！");
-                expenses.value.unshift({
-                    item: newItem.value, originalAmount: newAmount.value, originalCurrency: selectedCurrency.value,
-                    hkdAmount: newAmount.value * currentRate.value, payer: payer.value, involved: [...involvedUsers.value]
-                });
-                newItem.value = ""; newAmount.value = "";
-            };
-
-            const settlements = computed(() => {
-                let balances = {}; users.value.forEach(u => balances[u] = 0);
-                expenses.value.forEach(exp => {
-                    balances[exp.payer] += exp.hkdAmount;
-                    const split = exp.hkdAmount / exp.involved.length;
-                    exp.involved.forEach(p => balances[p] -= split);
-                });
-                let debtors = [], creditors = [], results = [];
-                for (let u in balances) {
-                    if (balances[u] < -0.01) debtors.push({n:u, a:Math.abs(balances[u])});
-                    if (balances[u] > 0.01) creditors.push({n:u, a:balances[u]});
-                }
-                let i=0, j=0;
-                while(i < debtors.length && j < creditors.length){
-                    let m = Math.min(debtors[i].a, creditors[j].a);
-                    results.push({from: debtors[i].n, to: creditors[j].n, amount: m});
-                    debtors[i].a -= m; creditors[j].a -= m;
-                    if(debtors[i].a < 0.01) i++; if(creditors[j].a < 0.01) j++;
-                }
-                return results;
+        const addExpense = () => {
+            if (!form.value.item || !form.value.amount || !form.value.payer || form.value.involved.length === 0) return alert("請填好所有資料！");
+            expenses.value.unshift({
+                id: Date.now(), ...form.value, hkd: form.value.amount * currentRate.value, involved: [...form.value.involved]
             });
+            form.value.item = ""; form.value.amount = "";
+        };
 
-            onMounted(() => {
-                const saved = localStorage.getItem('mathgod2_data');
-                if (saved) {
-                    const d = JSON.parse(saved);
-                    users.value = d.users || []; expenses.value = d.expenses || [];
-                }
+        const startEdit = (index) => {
+            isEditing.value = true;
+            editIndex.value = index;
+            const target = expenses.value[index];
+            form.value = { ...target, involved: [...target.involved] };
+            fetchRate(); // 確保修改時匯率正確
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        const saveEdit = () => {
+            expenses.value[editIndex.value] = { 
+                ...form.value, hkd: form.value.amount * currentRate.value, involved: [...form.value.involved] 
+            };
+            cancelEdit();
+        };
+
+        const cancelEdit = () => {
+            isEditing.value = false; editIndex.value = null;
+            form.value = { item: "", amount: "", currency: "HKD", payer: users.value[0] || "", involved: [...users.value] };
+            fetchRate();
+        };
+
+        const settlements = computed(() => {
+            let balances = {}; users.value.forEach(u => balances[u] = 0);
+            expenses.value.forEach(exp => {
+                if(balances[exp.payer] !== undefined) balances[exp.payer] += exp.hkd;
+                const split = exp.hkd / exp.involved.length;
+                exp.involved.forEach(p => { if(balances[p] !== undefined) balances[p] -= split; });
             });
-            watch([users, expenses], () => {
-                localStorage.setItem('mathgod2_data', JSON.stringify({users:users.value, expenses:expenses.value}));
-            }, {deep: true});
+            let debtors = [], creditors = [], res = [];
+            for (let u in balances) {
+                if (balances[u] < -0.01) debtors.push({n:u, a:Math.abs(balances[u])});
+                if (balances[u] > 0.01) creditors.push({n:u, a:balances[u]});
+            }
+            let i=0, j=0;
+            while(i<debtors.length && j<creditors.length){
+                let m = Math.min(debtors[i].a, creditors[j].a);
+                res.push({from: debtors[i].n, to: creditors[j].n, amount: m});
+                debtors[i].a -= m; creditors[j].a -= m;
+                if(debtors[i].a < 0.01) i++; if(creditors[j].a < 0.01) j++;
+            }
+            return res;
+        });
 
-            return { users, newUser, expenses, newItem, newAmount, selectedCurrency, currentRate, payer, involvedUsers, fetchRate, addUser, addExpense, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkdAmount,0)), removeUser: (i)=>users.value.splice(i,1), removeExpense: (i)=>expenses.value.splice(i,1), clearAll: ()=>confirm("清空？") && (expenses.value=[]) };
-        }
-    }).mount('#app');
+        onMounted(() => {
+            const saved = localStorage.getItem('mathgod2_final_data');
+            if (saved) { const d = JSON.parse(saved); users.value = d.users || []; expenses.value = d.expenses || []; }
+        });
+        watch([users, expenses], () => {
+            localStorage.setItem('mathgod2_final_data', JSON.stringify({users:users.value, expenses:expenses.value}));
+        }, {deep: true});
+
+        return { users, newUser, form, expenses, currentRate, isEditing, fetchRate, addUser, addExpense, startEdit, saveEdit, cancelEdit, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)), removeUser: (i)=>users.value.splice(i,1), removeExpense: (i)=>confirm("確定刪除？") && expenses.value.splice(i,1), clearAll: ()=>confirm("清空所有資料？") && (expenses.value = []) };
+    }
+}).mount('#app');
 </script>
 </body>
 </html>
