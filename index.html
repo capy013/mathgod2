@@ -21,8 +21,12 @@
         .status-tag { font-size: 8px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
         .header-input { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.15); color: white; }
         .header-input::placeholder { color: rgba(255,255,255,0.4); }
-        /* 日期選擇器樣式 */
-        input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: auto; height: auto; color: transparent; background: transparent; }
+        /* 隱藏原生日期圖標但保持點擊區域 */
+        input[type="date"]::-webkit-inner-spin-button,
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            opacity: 0;
+            -webkit-appearance: none;
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -40,14 +44,19 @@
             </div>
         </div>
 
-        <div class="flex gap-2 relative">
+        <div class="flex gap-2">
             <input v-model="eventName" type="text" placeholder="輸入活動名稱 (例如: 食飯)" class="header-input flex-1 p-3 rounded-2xl text-xs outline-none font-bold">
             
-            <input type="date" ref="datePickerRef" @change="appendDate" class="absolute opacity-0 pointer-events-none w-0 h-0">
-            
-            <button @click="triggerDatePicker" class="bg-white/10 hover:bg-white/20 px-4 rounded-2xl border border-white/20 flex items-center justify-center transition-all active:scale-95">
-                <i class="fas fa-calendar-alt text-sm"></i>
-            </button>
+            <div class="relative">
+                <button class="h-full bg-white/10 hover:bg-white/20 px-4 rounded-2xl border border-white/20 flex items-center justify-center transition-all active:scale-95">
+                    <i class="fas fa-calendar-alt text-sm"></i>
+                </button>
+                <input 
+                    type="date" 
+                    @change="appendDate" 
+                    class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
+                >
+            </div>
         </div>
     </header>
 
@@ -259,18 +268,18 @@ createApp({
         const showClearDialog = ref(false); const clearOptions = ref({ expenses: true, users: false });
         const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
         
-        // 日期相關
-        const datePickerRef = ref(null);
-        const triggerDatePicker = () => { if(datePickerRef.value && datePickerRef.value.showPicker) datePickerRef.value.showPicker(); };
+        // 日期處理 - 優化 iOS 兼容性
         const appendDate = (event) => {
             const selectedDate = event.target.value;
             if (!selectedDate) return;
             const [y, m, d] = selectedDate.split('-');
             const formattedDate = `${parseInt(d)}/${parseInt(m)}/${y}`;
             
-            // 清理已有的日期 (防止重複疊加)
             let cleanName = eventName.value.replace(/ - \d{1,2}\/\d{1,2}\/\d{4}$/, '').trim();
             eventName.value = cleanName ? `${cleanName} - ${formattedDate}` : formattedDate;
+            
+            // 重置 input 以便下次選擇
+            event.target.value = '';
         };
 
         const fetchRate = async () => {
@@ -311,11 +320,10 @@ createApp({
             form.value.item = ""; form.value.amount = "";
         };
 
-        // 修改點：當清除消費紀錄時，同時清空活動名稱
         const confirmClear = () => {
             if (clearOptions.value.expenses) {
                 expenses.value = [];
-                eventName.value = ""; // 清空活動名
+                eventName.value = ""; 
             }
             if (clearOptions.value.users) { 
                 users.value = []; 
@@ -374,7 +382,7 @@ createApp({
 
         return { 
             eventName, users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, manualShopRate, isManualRate, rateMode, isRateCached, isGenerating, customCurrencyName,
-            showClearDialog, clearOptions, confirmClear, datePickerRef, triggerDatePicker, appendDate,
+            showClearDialog, clearOptions, confirmClear, appendDate,
             addUser, addExpense, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
             personalStats: computed(() => users.value.map(u => {
                 let paid = 0, should = 0;
