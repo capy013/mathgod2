@@ -15,11 +15,14 @@
         .evergreen-gradient { background: linear-gradient(135deg, #059669 0%, #064e3b 100%); }
         .card-bg { background-color: #1e1e1e; border: 1px solid rgba(255,255,255,0.05); }
         .input-bg { background-color: #2d2d2d; border: 1px solid rgba(255,255,255,0.1); color: white; }
-        #capture-zone { background-color: #121212 !important; border-radius: 24px; padding: 24px; }
+        #capture-zone { background-color: #121212 !important; border-radius: 24px; padding: 20px; }
         .whatsapp-green { background-color: #25D366; color: white; }
-        /* 修正後的渲染樣式 */
-        .safe-render { line-height: 1.8 !important; padding-bottom: 6px !important; padding-right: 6px !important; display: inline-block !important; vertical-align: middle; }
+        /* 統一優化後的渲染樣式 */
+        .safe-render { display: inline-block !important; vertical-align: middle; line-height: 1.2 !important; }
         .status-tag { font-size: 8px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+        /* 針對截圖排位的微調 */
+        .settlement-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; }
+        .name-badge { min-width: 60px; display: inline-block; text-align: center; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -32,58 +35,56 @@
             </h1>
             <label class="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-all">
                 <input type="checkbox" v-model="showDetails" class="accent-emerald-400 w-4 h-4 rounded">
-                <span class="text-[10px] font-bold uppercase tracking-wide">列出消費詳情</span>
+                <span class="text-[10px] font-bold uppercase tracking-wide">詳情</span>
             </label>
         </div>
         <div class="flex gap-2 justify-end">
-            <button @click="showTextShare = true" class="bg-white/10 px-4 py-2 rounded-full border border-white/20 text-[10px] font-bold">文字分享</button>
-            <button @click="generateImage" class="bg-white/20 px-4 py-2 rounded-full border border-white/30 text-[10px] font-bold">截圖分享</button>
+            <button @click="showTextShare = true" class="bg-white/10 px-4 py-2 rounded-full border border-white/20 text-[10px] font-bold">文字</button>
+            <button @click="generateImage" class="bg-white/20 px-4 py-2 rounded-full border border-white/30 text-[10px] font-bold">截圖</button>
         </div>
     </header>
 
     <div class="p-4 space-y-6">
         <section v-if="!isExporting" class="card-bg p-5 rounded-3xl shadow-sm">
-            <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">加入朋友</h2>
+            <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest text-center">加入朋友</h2>
             <div class="flex gap-2 mb-4">
                 <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名稱..." class="input-bg flex-1 p-3 rounded-2xl text-sm outline-none">
                 <button @click="addUser" class="bg-emerald-600 text-white px-6 rounded-2xl text-sm font-bold active:scale-95 transition-all">加入</button>
             </div>
-            <div class="flex flex-wrap gap-2">
-                <span v-for="(u, i) in users" :key="u" class="bg-emerald-500/10 text-emerald-500 px-4 py-2 rounded-xl text-xs border border-emerald-500/20 flex items-center gap-2 font-bold">
+            <div class="flex flex-wrap gap-2 justify-center">
+                <span v-for="(u, i) in users" :key="u" class="bg-emerald-500/10 text-emerald-500 px-3 py-1.5 rounded-xl text-xs border border-emerald-500/20 flex items-center gap-2 font-bold">
                     {{ u }} <button @click="removeUser(i)" class="opacity-40 text-lg">&times;</button>
                 </span>
             </div>
         </section>
 
         <div id="capture-zone">
-            <section v-if="expenses.length > 0" class="bg-emerald-950/20 border border-emerald-900/40 p-6 rounded-[32px] mb-2">
-                <div class="flex justify-between items-start mb-6">
-                    <div><h2 class="font-black text-emerald-500 text-xl tracking-tight safe-render">埋單計數</h2><p class="text-[10px] text-gray-500 -mt-2">Settlement</p></div>
+            <section v-if="expenses.length > 0" class="bg-emerald-950/20 border border-emerald-900/40 p-5 rounded-[28px] mb-2">
+                <div class="flex justify-between items-center mb-4 px-2">
+                    <div><h2 class="font-black text-emerald-500 text-lg tracking-tight safe-render">埋單計數</h2></div>
                     <div class="text-right">
-                        <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 safe-render">總消費 Total Spent</div>
-                        <div class="font-mono font-bold text-emerald-500 text-lg">HK${{ totalSpent.toFixed(1) }}</div>
+                        <span class="text-[9px] font-bold text-gray-500 uppercase mr-2">Total</span>
+                        <span class="font-mono font-bold text-emerald-500 text-base">HK${{ totalSpent.toFixed(1) }}</span>
                     </div>
                 </div>
                 
-                <div class="space-y-3 mb-6">
-                    <div v-for="(s, i) in settlements" :key="i" class="bg-black/40 border border-white/5 flex items-center justify-between p-4 rounded-2xl">
-                        <div class="flex items-center gap-2">
-                            <span class="text-rose-400 font-black text-sm safe-render">{{ s.from }}</span>
-                            <i class="fas fa-arrow-right text-[10px] text-gray-700"></i>
-                            <span class="text-emerald-500 font-black text-sm safe-render">{{ s.to }}</span>
+                <div class="space-y-2 mb-4">
+                    <div v-for="(s, i) in settlements" :key="i" class="bg-black/40 border border-white/5 settlement-row rounded-xl">
+                        <div class="flex items-center gap-3">
+                            <span class="text-rose-400 font-black text-xs name-badge truncate safe-render">{{ s.from }}</span>
+                            <i class="fas fa-caret-right text-gray-700 text-[10px]"></i>
+                            <span class="text-emerald-500 font-black text-xs name-badge truncate safe-render">{{ s.to }}</span>
                         </div>
-                        <span class="font-mono text-xl text-emerald-500 font-black italic safe-render">HK${{ s.amount.toFixed(1) }}</span>
+                        <span class="font-mono text-base text-emerald-500 font-black italic safe-render">HK${{ s.amount.toFixed(1) }}</span>
                     </div>
                 </div>
 
-                <div class="border-t border-white/5 pt-4">
-                    <p class="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">個人收支概覽 Dashboard</p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div v-for="stat in personalStats" :key="stat.name" class="bg-white/5 p-3 rounded-xl flex flex-col items-center">
-                            <span class="text-[10px] font-bold text-gray-400 truncate w-full text-center safe-render" style="line-height: 2 !important;">
-                                {{ stat.name }}
-                            </span>
-                            <span :class="stat.net >= 0 ? 'text-emerald-500' : 'text-rose-500'" class="font-mono text-xs font-bold italic">
+                <div class="border-t border-white/5 pt-3">
+                    <p class="text-[8px] font-bold text-gray-500 uppercase tracking-widest mb-2 text-center">Dashboard</p>
+                    <div class="flex flex-wrap gap-1.5 justify-center">
+                        <div v-for="stat in personalStats" :key="stat.name" class="bg-white/5 px-3 py-2 rounded-lg flex items-center gap-3 min-w-[100px] justify-between border border-white/5">
+                            <span class="text-[10px] font-bold text-gray-400 truncate safe-render">{{ stat.name }}</span>
+                            <span :class="stat.net >= 0 ? 'text-emerald-500' : 'text-rose-500'" class="font-mono text-[10px] font-bold">
                                 {{ stat.net >= 0 ? '+' : '' }}{{ stat.net.toFixed(0) }}
                             </span>
                         </div>
@@ -91,19 +92,19 @@
                 </div>
             </section>
             
-            <div v-if="expenses.length > 0 && showDetails" class="py-4 flex items-center gap-3 opacity-60">
-                <div class="h-px bg-gray-700 flex-1"></div><span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest safe-render">消費詳情 Details</span><div class="h-px bg-gray-700 flex-1"></div>
+            <div v-if="expenses.length > 0 && showDetails" class="py-2 flex items-center gap-3 opacity-40">
+                <div class="h-px bg-gray-700 flex-1"></div><span class="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Details</span><div class="h-px bg-gray-700 flex-1"></div>
             </div>
 
-            <div v-if="expenses.length > 0 && showDetails" class="space-y-3">
-                <div v-for="(exp, idx) in expenses" :key="exp.id" class="card-bg p-4 rounded-2xl flex justify-between items-center border-l-4 border-emerald-600 shadow-sm relative">
+            <div v-if="expenses.length > 0 && showDetails" class="space-y-2">
+                <div v-for="(exp, idx) in expenses" :key="exp.id" class="card-bg p-3 rounded-xl flex justify-between items-center border-l-2 border-emerald-600 shadow-sm relative">
                     <div class="flex-1 min-w-0 mr-4">
-                        <div class="font-black text-sm text-gray-200 truncate safe-render">{{ exp.item }}</div>
-                        <div class="text-[10px] text-gray-500"><b class="text-emerald-600 uppercase safe-render">{{ exp.payer }}</b> <span class="opacity-80">付 {{ exp.currency }} {{ exp.amount }}</span></div>
+                        <div class="font-bold text-xs text-gray-200 truncate safe-render">{{ exp.item }}</div>
+                        <div class="text-[9px] text-gray-500"><b class="text-emerald-600 uppercase">{{ exp.payer }}</b> 付 {{ exp.currency }} {{ exp.amount }}</div>
                     </div>
-                    <div class="text-right flex items-center gap-4">
-                        <div class="font-mono font-bold text-gray-200 safe-render">HK${{ exp.hkd.toFixed(1) }}</div>
-                        <div v-if="!isExporting" class="flex gap-3 opacity-20 text-xs">
+                    <div class="text-right flex items-center gap-3">
+                        <div class="font-mono font-bold text-xs text-gray-300">HK${{ exp.hkd.toFixed(1) }}</div>
+                        <div v-if="!isExporting" class="flex gap-2 opacity-20 text-[10px]">
                             <button @click="startEdit(idx)"><i class="fas fa-edit"></i></button>
                             <button @click="removeExpense(idx)" class="text-red-500"><i class="fas fa-trash"></i></button>
                         </div>
@@ -113,84 +114,55 @@
         </div>
 
         <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border border-white/5 mt-6">
-            <div class="space-y-5">
-                <input v-model="form.item" type="text" placeholder="項目 (例如: 午飯)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
+            <div class="space-y-4">
+                <input v-model="form.item" type="text" placeholder="項目" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
                 
-                <div class="space-y-3">
-                    <div class="flex gap-2">
-                        <select v-model="form.currency" @change="handleCurrencyChange" class="input-bg p-4 rounded-2xl text-sm w-1/3 font-bold">
-                            <option value="HKD">🇭🇰 HKD</option>
-                            <option value="JPY">🇯🇵 JPY</option>
-                            <option value="TWD">🇹🇼 TWD</option>
-                            <option value="CNY">🇨🇳 CNY</option>
-                            <option value="THB">🇹🇭 THB</option>
-                            <option value="CUSTOM">➕ 自訂</option>
-                        </select>
-                        <input v-model.number="form.amount" type="number" placeholder="金額" class="input-bg flex-1 p-4 rounded-2xl text-sm text-right font-mono font-bold outline-none">
-                    </div>
-                    <div v-if="form.currency === 'CUSTOM'">
-                        <input v-model="customCurrencyName" type="text" placeholder="自訂幣種名稱 (如: EUR)" class="input-bg w-full p-3 rounded-xl text-xs font-bold border-emerald-500/30 outline-none text-emerald-400">
-                    </div>
+                <div class="flex gap-2">
+                    <select v-model="form.currency" @change="handleCurrencyChange" class="input-bg p-4 rounded-2xl text-sm w-1/3 font-bold">
+                        <option value="HKD">🇭🇰 HKD</option>
+                        <option value="JPY">🇯🇵 JPY</option>
+                        <option value="TWD">🇹🇼 TWD</option>
+                        <option value="CNY">🇨🇳 CNY</option>
+                        <option value="THB">🇹🇭 THB</option>
+                        <option value="CUSTOM">➕ 自訂</option>
+                    </select>
+                    <input v-model.number="form.amount" type="number" placeholder="金額" class="input-bg flex-1 p-4 rounded-2xl text-sm text-right font-mono font-bold outline-none">
                 </div>
 
-                <div v-if="form.currency !== 'HKD'" class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
+                <div v-if="form.currency !== 'HKD'" class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3 text-xs">
                     <div class="flex justify-between items-center">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
-                            參考匯率 (1 HKD =)
-                            <span v-if="isRateCached" class="status-tag bg-amber-500/20 text-amber-500">快取數據</span>
-                        </span>
-                        <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="checkbox" v-model="isManualRate" @change="handleManualToggle" :disabled="form.currency === 'CUSTOM'" class="w-3.5 h-3.5 accent-emerald-500 rounded">
-                            <span class="text-[10px] font-bold text-emerald-500 uppercase">自訂匯率</span>
-                        </label>
+                        <span class="text-gray-400 uppercase font-bold text-[10px]">匯率 <span v-if="isRateCached" class="status-tag bg-amber-500/20 text-amber-500">快取</span></span>
+                        <label class="flex items-center gap-1.5"><input type="checkbox" v-model="isManualRate" class="accent-emerald-500"> <span class="text-emerald-500 font-bold uppercase text-[10px]">自訂</span></label>
                     </div>
-                    
-                    <div v-if="isManualRate" class="flex gap-2">
-                        <button @click="applyRateMode('cash')" :class="rateMode === 'cash' ? 'bg-emerald-600 text-white' : 'bg-white/5 text-gray-400'" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all">現金模式</button>
-                        <button @click="applyRateMode('card')" :class="rateMode === 'card' ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-white/5 text-gray-400'" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all">信用卡 (+1.95%)</button>
-                    </div>
-
-                    <div class="relative">
-                        <input v-model.number="manualShopRate" @input="updateFromShopRate(); rateMode = 'custom'" :disabled="!isManualRate" type="number" step="0.001" class="input-bg w-full p-3 rounded-xl text-sm font-mono outline-none text-emerald-400 disabled:opacity-50" placeholder="輸入找換店匯率...">
-                    </div>
+                    <input v-model.number="manualShopRate" @input="updateFromShopRate" :disabled="!isManualRate" type="number" step="0.001" class="input-bg w-full p-2 rounded-lg text-sm font-mono text-emerald-400">
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-gray-500 ml-1">誰付款？</label>
-                        <select v-model="form.payer" class="input-bg w-full p-3 rounded-2xl text-sm outline-none">
+                        <label class="text-[10px] font-bold text-gray-500">誰付款？</label>
+                        <select v-model="form.payer" class="input-bg w-full p-3 rounded-xl text-sm outline-none">
                             <option v-for="u in users" :key="u" :value="u">{{ u }}</option>
                         </select>
                     </div>
                     <div class="space-y-2">
-                        <div class="flex justify-between items-center ml-1">
-                            <label class="text-[10px] font-bold text-gray-500">誰參與？</label>
-                            <button @click="toggleSelectAll" class="text-[10px] font-bold text-emerald-500 uppercase">{{ form.involved.length === users.length ? '取消全部' : '全選' }}</button>
-                        </div>
-                        <div class="input-bg max-h-32 overflow-y-auto rounded-2xl p-3 text-[10px]">
-                            <div v-for="u in users" :key="u" class="flex items-center gap-3 mb-2">
-                                <input type="checkbox" :value="u" v-model="form.involved" class="w-4 h-4 rounded accent-emerald-500">
-                                <span class="truncate">{{ u }}</span>
+                        <div class="flex justify-between items-center"><label class="text-[10px] font-bold text-gray-500">誰參與？</label><button @click="toggleSelectAll" class="text-[10px] font-bold text-emerald-500 uppercase">全選</button></div>
+                        <div class="input-bg max-h-24 overflow-y-auto rounded-xl p-2 text-[10px]">
+                            <div v-for="u in users" :key="u" class="flex items-center gap-2 mb-1">
+                                <input type="checkbox" :value="u" v-model="form.involved" class="accent-emerald-500"> <span class="truncate">{{ u }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <button @click="isEditing ? saveEdit() : addExpense()" :class="isEditing ? 'bg-amber-600' : 'evergreen-gradient'" class="w-full text-white font-black py-5 rounded-[20px] shadow-xl text-sm uppercase tracking-widest active:scale-95 transition-all">
+                <button @click="isEditing ? saveEdit() : addExpense()" class="w-full text-white font-black py-4 rounded-2xl shadow-xl evergreen-gradient text-xs uppercase tracking-widest active:scale-95 transition-all">
                     {{ isEditing ? '儲存修改' : '確認記帳' }}
-                    <span v-if="form.amount" class="ml-1 opacity-90 text-xs font-mono">
-                        (HK${{ (form.amount * currentRate).toFixed(1) }})
-                    </span>
                 </button>
             </div>
         </section>
 
         <div v-if="showTextShare" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6" @click.self="showTextShare = false">
-            <div class="card-bg w-full max-w-sm rounded-[32px] p-6 flex flex-col gap-4 shadow-2xl border border-white/10 relative">
-                <button @click="showTextShare = false" class="absolute -top-2 -right-2 bg-gray-800 text-white w-8 h-8 rounded-full border border-white/10 flex items-center justify-center shadow-lg active:scale-90 transition-all">
-                    <i class="fas fa-times"></i>
-                </button>
-                <h3 class="font-black text-emerald-500 text-sm">文字結算</h3>
+            <div class="card-bg w-full max-w-sm rounded-[32px] p-6 flex flex-col gap-4 relative">
+                <button @click="showTextShare = false" class="absolute -top-2 -right-2 bg-gray-800 text-white w-8 h-8 rounded-full border border-white/10 flex items-center justify-center shadow-lg"><i class="fas fa-times"></i></button>
                 <textarea readonly class="input-bg w-full h-64 p-4 rounded-2xl text-[13px] font-mono leading-relaxed" v-model="shareMessage"></textarea>
                 <div class="grid grid-cols-2 gap-3"><button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold">複製文字</button><button @click="shareWhatsApp" class="whatsapp-green py-4 rounded-2xl text-xs font-bold">WhatsApp</button></div>
             </div>
@@ -198,51 +170,18 @@
 
         <div v-if="previewImg" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex flex-col items-center justify-center p-6" @click.self="previewImg = null">
             <div class="w-full max-w-sm flex flex-col items-center relative">
-                <button @click="previewImg = null" class="absolute -top-4 -right-2 bg-gray-800 text-white w-10 h-10 rounded-full border border-white/20 flex items-center justify-center shadow-xl active:scale-90 transition-all z-[80]">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
+                <button @click="previewImg = null" class="absolute -top-4 -right-2 bg-gray-800 text-white w-10 h-10 rounded-full border border-white/20 flex items-center justify-center shadow-xl"><i class="fas fa-times text-lg"></i></button>
                 <img :src="previewImg" class="max-w-full max-h-[60vh] rounded-2xl shadow-2xl mb-8 border border-white/10">
                 <div class="grid grid-cols-2 gap-4 w-full"><button @click="downloadImage" class="bg-white/10 text-white border border-white/20 py-4 rounded-2xl text-xs font-bold">下載圖片</button><button @click="shareImage" class="evergreen-gradient text-white py-4 rounded-2xl text-xs font-bold">分享圖片</button></div>
             </div>
         </div>
 
-        <div v-if="showClearDialog" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6" @click.self="showClearDialog = false">
-            <div class="card-bg w-full max-w-xs rounded-[32px] p-6 border border-white/10 shadow-2xl">
-                <h3 class="font-black text-emerald-500 text-center mb-6">你想清除什麼？</h3>
-                <div class="space-y-4 mb-8">
-                    <label class="flex items-center justify-between p-4 bg-white/5 rounded-2xl cursor-pointer">
-                        <span class="font-bold text-sm">消費紀錄</span>
-                        <input type="checkbox" v-model="clearOptions.expenses" class="w-5 h-5 accent-emerald-500">
-                    </label>
-                    <label class="flex items-center justify-between p-4 bg-white/5 rounded-2xl cursor-pointer">
-                        <span class="font-bold text-sm">朋友名單</span>
-                        <input type="checkbox" v-model="clearOptions.users" class="w-5 h-5 accent-emerald-500">
-                    </label>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <button @click="showClearDialog = false" class="bg-gray-700 py-3 rounded-2xl text-xs font-bold">取消</button>
-                    <button @click="confirmClear" class="bg-rose-600 py-3 rounded-2xl text-xs font-bold text-white">確認清除</button>
-                </div>
-            </div>
-        </div>
-
-        <div v-if="(expenses.length > 0 || users.length > 0) && !isExporting" class="px-4 py-6 text-center">
-            <button @click="showClearDialog = true" class="text-red-500/40 hover:text-red-500 text-[10px] font-bold uppercase tracking-widest py-2 transition-colors">
-                <i class="fas fa-trash-alt mr-1"></i> 清除紀錄
-            </button>
-        </div>
     </div>
 </div>
 
 <script>
-// --- PWA Service Worker 註冊 ---
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        // 這裡我們直接寫入 sw.js 的內容 (Inline Worker 比較複雜，建議還是分開檔案)
-        // 但為了方便，這段代碼會嘗試尋找同目錄下的 sw.js
-        navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW 註冊失敗:', err));
-    });
-}
+// PWA Service Worker 註冊
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('./sw.js').catch(() => {}); }); }
 
 const { createApp, ref, computed, watch, onMounted } = Vue;
 createApp({
@@ -250,102 +189,39 @@ createApp({
         const users = ref([]); const newUser = ref(""); const expenses = ref([]);
         const currentRate = ref(1); const manualShopRate = ref(0); 
         const isManualRate = ref(false); const rateMode = ref('cash'); 
-        const isRateCached = ref(false);
-        const customCurrencyName = ref("");
+        const isRateCached = ref(false); const customCurrencyName = ref("");
         const isEditing = ref(false); const editIndex = ref(null);
         const isExporting = ref(false); const previewImg = ref(null); const showTextShare = ref(false);
         const showDetails = ref(true); const showClearDialog = ref(false);
-        const clearOptions = ref({ expenses: true, users: false });
         const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
 
         const fetchRate = async () => {
-            if(form.value.currency === 'HKD' || form.value.currency === 'CUSTOM') { 
-                if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; }
-                return 1; 
-            }
+            if(form.value.currency === 'HKD' || form.value.currency === 'CUSTOM') return 1;
             const cacheKey = `rate_cache_${form.value.currency}`;
-            const cached = localStorage.getItem(cacheKey);
             try { 
                 const res = await fetch(`https://open.er-api.com/v6/latest/${form.value.currency}`); 
                 const data = await res.json(); 
                 const rate = data.rates.HKD || 1;
                 localStorage.setItem(cacheKey, rate);
                 isRateCached.value = false;
-                if (!isManualRate.value) {
-                    currentRate.value = rate;
-                    manualShopRate.value = Number((1 / rate).toFixed(3));
-                }
+                if (!isManualRate.value) { currentRate.value = rate; manualShopRate.value = Number((1 / rate).toFixed(3)); }
                 return rate;
             } catch (e) { 
-                if (cached) {
-                    const rate = parseFloat(cached);
-                    currentRate.value = rate;
-                    manualShopRate.value = Number((1 / rate).toFixed(3));
-                    isRateCached.value = true;
-                    return rate;
-                }
-                currentRate.value = 1; return 1; 
+                const cached = localStorage.getItem(cacheKey);
+                if (cached) { currentRate.value = parseFloat(cached); manualShopRate.value = Number((1 / currentRate.value).toFixed(3)); isRateCached.value = true; return currentRate.value; }
+                return 1;
             }
         };
 
-        const applyRateMode = async (mode) => {
-            rateMode.value = mode;
-            const baseRate = (form.value.currency === 'CUSTOM') ? (1/manualShopRate.value) : await fetchRate();
-            if (mode === 'card') {
-                currentRate.value = baseRate * 1.0195;
-                manualShopRate.value = Number((1 / currentRate.value).toFixed(3));
-            } else {
-                currentRate.value = baseRate;
-                manualShopRate.value = Number((1 / baseRate).toFixed(3));
-            }
-        };
-
-        const handleManualToggle = () => { if (!isManualRate.value && form.value.currency !== 'CUSTOM') { rateMode.value = 'cash'; fetchRate(); } };
         const updateFromShopRate = () => { if (manualShopRate.value > 0) currentRate.value = 1 / manualShopRate.value; };
         const toggleSelectAll = () => { form.value.involved = (form.value.involved.length === users.value.length) ? [] : [...users.value]; };
-
-        const handleCurrencyChange = () => { 
-            if(form.value.currency === 'CUSTOM') {
-                isManualRate.value = true; rateMode.value = 'custom';
-                manualShopRate.value = ""; currentRate.value = 0;
-            } else {
-                isManualRate.value = false; rateMode.value = 'cash';
-                if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; } else fetchRate(); 
-            }
-        };
+        const handleCurrencyChange = () => { if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; } else fetchRate(); };
 
         const addUser = () => { const n = newUser.value.trim(); if (n && !users.value.includes(n)) { users.value.push(n); form.value.involved.push(n); if(!form.value.payer) form.value.payer = n; newUser.value = ""; } };
         const addExpense = () => {
-            if (!form.value.item || !form.value.amount || !form.value.payer) return alert("請填寫正確資料");
-            const finalCurrency = form.value.currency === 'CUSTOM' ? (customCurrencyName.value || "外幣") : form.value.currency;
-            expenses.value.unshift({ 
-                id: Date.now(), ...form.value, currency: finalCurrency,
-                hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value, involved: [...form.value.involved] 
-            });
+            if (!form.value.item || !form.value.amount || !form.value.payer) return alert("資料不足");
+            expenses.value.unshift({ id: Date.now(), ...form.value, hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value, involved: [...form.value.involved] });
             form.value.item = ""; form.value.amount = "";
-        };
-
-        const startEdit = (i) => {
-            isEditing.value = true; editIndex.value = i; const exp = expenses.value[i];
-            form.value = JSON.parse(JSON.stringify(exp)); 
-            const standardCurrencies = ['HKD', 'JPY', 'TWD', 'CNY', 'THB'];
-            if (!standardCurrencies.includes(exp.currency)) { form.value.currency = 'CUSTOM'; customCurrencyName.value = exp.currency; }
-            currentRate.value = exp.rateUsed || 1;
-            isManualRate.value = true; rateMode.value = 'custom';
-            manualShopRate.value = Number((1 / currentRate.value).toFixed(3));
-            window.scrollTo({ top: document.getElementById('input-section').offsetTop - 100, behavior: 'smooth' });
-        };
-
-        const saveEdit = () => {
-            const finalCurrency = form.value.currency === 'CUSTOM' ? (customCurrencyName.value || "外幣") : form.value.currency;
-            expenses.value[editIndex.value] = { ...form.value, currency: finalCurrency, hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value };
-            isEditing.value = false; form.value.item = ""; form.value.amount = "";
-        };
-
-        const confirmClear = () => {
-            if (clearOptions.value.expenses) expenses.value = [];
-            if (clearOptions.value.users) { users.value = []; form.value.involved = []; form.value.payer = ""; }
-            showClearDialog.value = false;
         };
 
         const settlements = computed(() => {
@@ -378,35 +254,25 @@ createApp({
             });
         });
 
-        const shareMessage = computed(() => {
-            let msg = `⚡️埋單計數\n📊 總支出：HK$${expenses.value.reduce((s,e)=>s+e.hkd,0).toFixed(1)}\n\n✅ 找數列表：\n`;
-            settlements.value.forEach(s => msg += `🔹 ${s.from} ➔ ${s.to}：HK$${s.amount.toFixed(1)}\n`);
-            if (showDetails.value && expenses.value.length > 0) {
-                msg += `\n📝 消費詳情：\n`; expenses.value.forEach(e => msg += `▫️ ${e.item} (${e.payer})：${e.currency}${e.amount}\n`);
-            }
-            msg += `\n大家可以睇返銀碼找數啦！😃`; return msg;
-        });
-
         const generateImage = async () => {
             isExporting.value = true;
             setTimeout(async () => {
-                const canvas = await html2canvas(document.getElementById('capture-zone'), { backgroundColor: '#121212', scale: 2, useCORS: true });
+                const canvas = await html2canvas(document.getElementById('capture-zone'), { backgroundColor: '#121212', scale: 2 });
                 previewImg.value = canvas.toDataURL('image/png');
                 isExporting.value = false;
             }, 300);
         };
 
         onMounted(() => {
-            const saved = localStorage.getItem('mathgod_v55_data');
+            const saved = localStorage.getItem('mathgod_v60_data');
             if (saved) { const d = JSON.parse(saved); users.value = d.users || []; expenses.value = d.expenses || []; }
         });
-        watch([users, expenses], () => { localStorage.setItem('mathgod_v55_data', JSON.stringify({ users: users.value, expenses: expenses.value })); }, {deep: true});
+        watch([users, expenses], () => { localStorage.setItem('mathgod_v60_data', JSON.stringify({ users: users.value, expenses: expenses.value })); }, {deep: true});
 
         return { 
-            users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, manualShopRate, isManualRate, rateMode, customCurrencyName, isRateCached, personalStats,
-            showClearDialog, clearOptions, confirmClear, updateFromShopRate, handleManualToggle, applyRateMode, toggleSelectAll,
-            addUser, addExpense, startEdit, saveEdit, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
-            handleCurrencyChange, fetchRate, generateImage, downloadImage:()=> { const l=document.createElement('a'); l.download='MathGod.png'; l.href=previewImg.value; l.click(); },
+            users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, showDetails, currentRate, manualShopRate, isManualRate, isRateCached, personalStats,
+            updateFromShopRate, toggleSelectAll, addUser, addExpense, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
+            handleCurrencyChange, generateImage, downloadImage:()=> { const l=document.createElement('a'); l.download='MathGod.png'; l.href=previewImg.value; l.click(); },
             shareImage: async()=> { const r=await fetch(previewImg.value); const b=await r.blob(); const f=new File([b],'s.png',{type:'image/png'}); if(navigator.share) await navigator.share({files:[f]}); },
             copyText:()=> { navigator.clipboard.writeText(shareMessage.value); alert("已複製！"); },
             shareWhatsApp:()=> { window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(shareMessage.value)}`); },
