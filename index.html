@@ -26,7 +26,7 @@
     <header class="evergreen-gradient text-white p-6 sticky top-0 z-20 shadow-lg rounded-b-3xl">
         <div class="flex justify-between items-center mb-4">
             <h1 class="text-2xl font-black italic tracking-tighter">
-                <i class="fas fa-bolt mr-1 text-yellow-400"></i>數神！
+                <i class="fas fa-bolt mr-1 text-yellow-400"></i>數神
             </h1>
             <label class="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full border border-white/10 cursor-pointer active:scale-95 transition-all">
                 <input type="checkbox" v-model="showDetails" class="accent-emerald-400 w-4 h-4 rounded">
@@ -98,22 +98,29 @@
         <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border border-white/5 mt-6">
             <div class="space-y-5">
                 <input v-model="form.item" type="text" placeholder="項目 (例如: 午飯)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
-                <div class="flex gap-2">
-                    <select v-model="form.currency" @change="handleCurrencyChange" class="input-bg p-4 rounded-2xl text-sm w-1/3 font-bold">
-                        <option value="HKD">🇭🇰 HKD</option>
-                        <option value="JPY">🇯🇵 JPY</option>
-                        <option value="TWD">🇹🇼 TWD</option>
-                        <option value="CNY">🇨🇳 CNY</option>
-                        <option value="THB">🇹🇭 THB</option>
-                    </select>
-                    <input v-model.number="form.amount" type="number" placeholder="金額" class="input-bg flex-1 p-4 rounded-2xl text-sm text-right font-mono font-bold outline-none">
+                
+                <div class="space-y-3">
+                    <div class="flex gap-2">
+                        <select v-model="form.currency" @change="handleCurrencyChange" class="input-bg p-4 rounded-2xl text-sm w-1/3 font-bold">
+                            <option value="HKD">🇭🇰 HKD</option>
+                            <option value="JPY">🇯🇵 JPY</option>
+                            <option value="TWD">🇹🇼 TWD</option>
+                            <option value="CNY">🇨🇳 CNY</option>
+                            <option value="THB">🇹🇭 THB</option>
+                            <option value="CUSTOM">➕ 自訂</option>
+                        </select>
+                        <input v-model.number="form.amount" type="number" placeholder="金額" class="input-bg flex-1 p-4 rounded-2xl text-sm text-right font-mono font-bold outline-none">
+                    </div>
+                    <div v-if="form.currency === 'CUSTOM'">
+                        <input v-model="customCurrencyName" type="text" placeholder="請輸入外幣名稱 (如: EUR)" class="input-bg w-full p-3 rounded-xl text-xs font-bold border-emerald-500/30 outline-none text-emerald-400">
+                    </div>
                 </div>
 
                 <div v-if="form.currency !== 'HKD'" class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
                     <div class="flex justify-between items-center">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">參考找換店匯率 (1 HKD =)</span>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">參考匯率 (1 HKD =)</span>
                         <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="checkbox" v-model="isManualRate" @change="handleManualToggle" class="w-3.5 h-3.5 accent-emerald-500 rounded">
+                            <input type="checkbox" v-model="isManualRate" @change="handleManualToggle" :disabled="form.currency === 'CUSTOM'" class="w-3.5 h-3.5 accent-emerald-500 rounded">
                             <span class="text-[10px] font-bold text-emerald-500 uppercase">自訂匯率</span>
                         </label>
                     </div>
@@ -155,6 +162,27 @@
             </div>
         </section>
 
+        <div v-if="showTextShare" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6" @click.self="showTextShare = false">
+            <div class="card-bg w-full max-w-sm rounded-[32px] p-6 flex flex-col gap-4 shadow-2xl border border-white/10 relative">
+                <button @click="showTextShare = false" class="absolute -top-2 -right-2 bg-gray-800 text-white w-8 h-8 rounded-full border border-white/10 flex items-center justify-center shadow-lg active:scale-90 transition-all">
+                    <i class="fas fa-times"></i>
+                </button>
+                <h3 class="font-black text-emerald-500 text-sm">文字結算</h3>
+                <textarea readonly class="input-bg w-full h-64 p-4 rounded-2xl text-[13px] font-mono leading-relaxed" v-model="shareMessage"></textarea>
+                <div class="grid grid-cols-2 gap-3"><button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold">複製文字</button><button @click="shareWhatsApp" class="whatsapp-green py-4 rounded-2xl text-xs font-bold">WhatsApp</button></div>
+            </div>
+        </div>
+
+        <div v-if="previewImg" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex flex-col items-center justify-center p-6" @click.self="previewImg = null">
+            <div class="w-full max-w-sm flex flex-col items-center relative">
+                <button @click="previewImg = null" class="absolute -top-4 -right-2 bg-gray-800 text-white w-10 h-10 rounded-full border border-white/20 flex items-center justify-center shadow-xl active:scale-90 transition-all z-[80]">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+                <img :src="previewImg" class="max-w-full max-h-[60vh] rounded-2xl shadow-2xl mb-8 border border-white/10">
+                <div class="grid grid-cols-2 gap-4 w-full"><button @click="downloadImage" class="bg-white/10 text-white border border-white/20 py-4 rounded-2xl text-xs font-bold">下載圖片</button><button @click="shareImage" class="evergreen-gradient text-white py-4 rounded-2xl text-xs font-bold">分享圖片</button></div>
+            </div>
+        </div>
+
         <div v-if="showClearDialog" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6" @click.self="showClearDialog = false">
             <div class="card-bg w-full max-w-xs rounded-[32px] p-6 border border-white/10 shadow-2xl">
                 <h3 class="font-black text-emerald-500 text-center mb-6">你想清除什麼？</h3>
@@ -181,20 +209,6 @@
             </button>
         </div>
     </div>
-
-    <div v-if="showTextShare" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6" @click.self="showTextShare = false">
-        <div class="card-bg w-full max-w-sm rounded-[32px] p-6 flex flex-col gap-4 shadow-2xl border border-white/10">
-            <h3 class="font-black text-emerald-500 text-sm">文字結算</h3>
-            <textarea readonly class="input-bg w-full h-64 p-4 rounded-2xl text-[13px] font-mono leading-relaxed" v-model="shareMessage"></textarea>
-            <div class="grid grid-cols-2 gap-3"><button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold">複製文字</button><button @click="shareWhatsApp" class="whatsapp-green py-4 rounded-2xl text-xs font-bold">WhatsApp</button></div>
-        </div>
-    </div>
-    <div v-if="previewImg" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex flex-col items-center justify-center p-6" @click.self="previewImg = null">
-        <div class="w-full max-w-sm flex flex-col items-center">
-            <img :src="previewImg" class="max-w-full max-h-[60vh] rounded-2xl shadow-2xl mb-8 border border-white/10">
-            <div class="grid grid-cols-2 gap-4 w-full"><button @click="downloadImage" class="bg-white/10 text-white border border-white/20 py-4 rounded-2xl text-xs font-bold">下載圖片</button><button @click="shareImage" class="evergreen-gradient text-white py-4 rounded-2xl text-xs font-bold">分享圖片</button></div>
-        </div>
-    </div>
 </div>
 
 <script>
@@ -204,6 +218,7 @@ createApp({
         const users = ref([]); const newUser = ref(""); const expenses = ref([]);
         const currentRate = ref(1); const manualShopRate = ref(0); 
         const isManualRate = ref(false); const rateMode = ref('cash'); 
+        const customCurrencyName = ref("");
         const isEditing = ref(false); const editIndex = ref(null);
         const isExporting = ref(false); const previewImg = ref(null); const showTextShare = ref(false);
         const showDetails = ref(true); const showClearDialog = ref(false);
@@ -211,7 +226,10 @@ createApp({
         const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
 
         const fetchRate = async () => {
-            if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; return; }
+            if(form.value.currency === 'HKD' || form.value.currency === 'CUSTOM') { 
+                if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; }
+                return 1; 
+            }
             try { 
                 const res = await fetch(`https://open.er-api.com/v6/latest/${form.value.currency}`); 
                 const data = await res.json(); 
@@ -220,16 +238,14 @@ createApp({
                     currentRate.value = rate;
                     manualShopRate.value = Number((1 / rate).toFixed(3));
                 }
-                return rate; // 返回基礎匯率供其他功能使用
+                return rate;
             } catch (e) { currentRate.value = 1; return 1; }
         };
 
         const applyRateMode = async (mode) => {
             rateMode.value = mode;
-            const baseRate = await fetchRate(); // 獲取最新基準
+            const baseRate = (form.value.currency === 'CUSTOM') ? (1/manualShopRate.value) : await fetchRate();
             if (mode === 'card') {
-                // 信用卡模式：用戶付的外幣不變，但結算的 HKD 金額增加 1.95%
-                // 換句話說，匯率要乘 1.0195
                 currentRate.value = baseRate * 1.0195;
                 manualShopRate.value = Number((1 / currentRate.value).toFixed(3));
             } else {
@@ -238,29 +254,51 @@ createApp({
             }
         };
 
-        const handleManualToggle = () => { if (!isManualRate.value) { rateMode.value = 'cash'; fetchRate(); } };
+        const handleManualToggle = () => { if (!isManualRate.value && form.value.currency !== 'CUSTOM') { rateMode.value = 'cash'; fetchRate(); } };
         const updateFromShopRate = () => { if (manualShopRate.value > 0) currentRate.value = 1 / manualShopRate.value; };
+        
         const handleCurrencyChange = () => { 
-            isManualRate.value = false; rateMode.value = 'cash';
-            if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; } else fetchRate(); 
+            if(form.value.currency === 'CUSTOM') {
+                isManualRate.value = true; rateMode.value = 'custom';
+                manualShopRate.value = ""; currentRate.value = 0;
+            } else {
+                isManualRate.value = false; rateMode.value = 'cash';
+                if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; } else fetchRate(); 
+            }
         };
+
         const addUser = () => { const n = newUser.value.trim(); if (n && !users.value.includes(n)) { users.value.push(n); form.value.involved.push(n); if(!form.value.payer) form.value.payer = n; newUser.value = ""; } };
         
         const addExpense = () => {
             if (!form.value.item || !form.value.amount || !form.value.payer) return alert("請填寫正確資料");
-            expenses.value.unshift({ id: Date.now(), ...form.value, hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value, involved: [...form.value.involved] });
+            const finalCurrency = form.value.currency === 'CUSTOM' ? (customCurrencyName.value || "外幣") : form.value.currency;
+            expenses.value.unshift({ 
+                id: Date.now(), ...form.value, currency: finalCurrency,
+                hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value, involved: [...form.value.involved] 
+            });
             form.value.item = ""; form.value.amount = "";
         };
 
         const startEdit = (i) => {
             isEditing.value = true; editIndex.value = i; const exp = expenses.value[i];
-            form.value = JSON.parse(JSON.stringify(exp)); currentRate.value = exp.rateUsed || 1;
+            form.value = JSON.parse(JSON.stringify(exp)); 
+            const standardCurrencies = ['HKD', 'JPY', 'TWD', 'CNY', 'THB'];
+            if (!standardCurrencies.includes(exp.currency)) {
+                form.value.currency = 'CUSTOM';
+                customCurrencyName.value = exp.currency;
+            }
+            currentRate.value = exp.rateUsed || 1;
             isManualRate.value = true; rateMode.value = 'custom';
             manualShopRate.value = Number((1 / currentRate.value).toFixed(3));
             window.scrollTo({ top: document.getElementById('input-section').offsetTop - 100, behavior: 'smooth' });
         };
+
         const saveEdit = () => {
-            expenses.value[editIndex.value] = { ...form.value, hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value };
+            const finalCurrency = form.value.currency === 'CUSTOM' ? (customCurrencyName.value || "外幣") : form.value.currency;
+            expenses.value[editIndex.value] = { 
+                ...form.value, currency: finalCurrency,
+                hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value 
+            };
             isEditing.value = false; form.value.item = ""; form.value.amount = "";
         };
 
@@ -314,7 +352,7 @@ createApp({
         watch([users, expenses], () => { localStorage.setItem('mathgod_v55_data', JSON.stringify({ users: users.value, expenses: expenses.value })); }, {deep: true});
 
         return { 
-            users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, manualShopRate, isManualRate, rateMode,
+            users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, manualShopRate, isManualRate, rateMode, customCurrencyName,
             showClearDialog, clearOptions, confirmClear, updateFromShopRate, handleManualToggle, applyRateMode,
             addUser, addExpense, startEdit, saveEdit, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
             handleCurrencyChange, fetchRate, generateImage, downloadImage:()=> { const l=document.createElement('a'); l.download='MathGod.png'; l.href=previewImg.value; l.click(); },
