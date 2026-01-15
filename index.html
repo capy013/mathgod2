@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>數神 MathGod</title>
+    <title>數神 MathGod (完整功能 + 日期選擇)</title>
     <link rel="icon" type="image/png" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/svgs/solid/bolt.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -21,6 +21,8 @@
         .status-tag { font-size: 8px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
         .header-input { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.15); color: white; }
         .header-input::placeholder { color: rgba(255,255,255,0.4); }
+        /* 日期選擇器樣式 */
+        input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; top: 0; left: 0; right: 0; bottom: 0; width: auto; height: auto; color: transparent; background: transparent; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -37,8 +39,15 @@
                 <button @click="openImagePreview" class="bg-white/20 px-4 py-2 rounded-full border border-white/30 text-[10px] font-bold active:scale-95 transition-all">截圖分享</button>
             </div>
         </div>
-        <div>
-            <input v-model="eventName" type="text" placeholder="輸入活動名稱 (例如: 東京之旅)" class="header-input w-full p-3 rounded-2xl text-xs outline-none font-bold">
+
+        <div class="flex gap-2 relative">
+            <input v-model="eventName" type="text" placeholder="輸入活動名稱 (例如: 食飯)" class="header-input flex-1 p-3 rounded-2xl text-xs outline-none font-bold">
+            
+            <input type="date" ref="datePickerRef" @change="appendDate" class="absolute opacity-0 pointer-events-none w-0 h-0">
+            
+            <button @click="triggerDatePicker" class="bg-white/10 hover:bg-white/20 px-4 rounded-2xl border border-white/20 flex items-center justify-center transition-all active:scale-95">
+                <i class="fas fa-calendar-alt text-sm"></i>
+            </button>
         </div>
     </header>
 
@@ -249,6 +258,20 @@ createApp({
         const customCurrencyName = ref(""); 
         const showClearDialog = ref(false); const clearOptions = ref({ expenses: true, users: false });
         const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
+        
+        // 日期相關
+        const datePickerRef = ref(null);
+        const triggerDatePicker = () => { if(datePickerRef.value && datePickerRef.value.showPicker) datePickerRef.value.showPicker(); };
+        const appendDate = (event) => {
+            const selectedDate = event.target.value;
+            if (!selectedDate) return;
+            const [y, m, d] = selectedDate.split('-');
+            const formattedDate = `${parseInt(d)}/${parseInt(m)}/${y}`;
+            
+            // 清理已有的日期 (防止重複疊加: "食飯 - 1/1 - 2/1")
+            let cleanName = eventName.value.replace(/ - \d{1,2}\/\d{1,2}\/\d{4}$/, '').trim();
+            eventName.value = cleanName ? `${cleanName} - ${formattedDate}` : formattedDate;
+        };
 
         const fetchRate = async () => {
             if(form.value.currency === 'HKD' || form.value.currency === 'CUSTOM') { return 1; }
@@ -343,7 +366,7 @@ createApp({
 
         return { 
             eventName, users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, manualShopRate, isManualRate, rateMode, isRateCached, isGenerating, customCurrencyName,
-            showClearDialog, clearOptions, confirmClear,
+            showClearDialog, clearOptions, confirmClear, datePickerRef, triggerDatePicker, appendDate,
             addUser, addExpense, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
             personalStats: computed(() => users.value.map(u => {
                 let paid = 0, should = 0;
