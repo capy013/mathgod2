@@ -21,12 +21,8 @@
         .status-tag { font-size: 8px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
         .header-input { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.15); color: white; }
         .header-input::placeholder { color: rgba(255,255,255,0.4); }
-        /* 隱藏原生日期圖標但保持點擊區域 */
         input[type="date"]::-webkit-inner-spin-button,
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            opacity: 0;
-            -webkit-appearance: none;
-        }
+        input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0; -webkit-appearance: none; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -39,23 +35,19 @@
                 <i class="fas fa-bolt mr-1 text-yellow-400"></i>數神
             </h1>
             <div class="flex gap-2">
-                <button @click="showTextShare = true" class="bg-white/10 px-4 py-2 rounded-full border border-white/20 text-[10px] font-bold active:scale-95 transition-all">文字結算分享</button>
-                <button @click="openImagePreview" class="bg-white/20 px-4 py-2 rounded-full border border-white/30 text-[10px] font-bold active:scale-95 transition-all">圖片結算分享</button>
+                <button @click="openShareModal" class="bg-white/20 px-6 py-2 rounded-full border border-white/30 text-[12px] font-bold active:scale-95 transition-all">
+                    <i class="fas fa-share-alt mr-2"></i>分享結果
+                </button>
             </div>
         </div>
 
         <div class="flex gap-2">
             <input v-model="eventName" type="text" placeholder="輸入活動名稱 (例如: 食飯)" class="header-input flex-1 p-3 rounded-2xl text-xs outline-none font-bold">
-            
             <div class="relative">
                 <button class="h-full bg-white/10 hover:bg-white/20 px-4 rounded-2xl border border-white/20 flex items-center justify-center transition-all active:scale-95">
                     <i class="fas fa-calendar-alt text-sm"></i>
                 </button>
-                <input 
-                    type="date" 
-                    @change="appendDate" 
-                    class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
-                >
+                <input type="date" @change="appendDate" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10">
             </div>
         </div>
     </header>
@@ -128,7 +120,6 @@
         <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border border-white/5 mt-6">
             <div class="space-y-5">
                 <input v-model="form.item" type="text" placeholder="項目 (例如: 午飯)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
-                
                 <div class="space-y-3">
                     <div class="flex gap-2">
                         <select v-model="form.currency" @change="handleCurrencyChange" class="input-bg p-4 rounded-2xl text-sm w-1/3 font-bold">
@@ -205,44 +196,52 @@
         </div>
     </div>
 
-    <div v-if="showTextShare" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6" @click.self="showTextShare = false">
-        <div class="card-bg w-full max-w-sm rounded-[32px] p-6 flex flex-col gap-4 shadow-2xl relative border border-white/10">
-            <h3 class="font-black text-emerald-500 text-sm">分享文字結果</h3>
-            <label class="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/10 cursor-pointer">
-                <span class="text-xs font-bold text-gray-300">列出消費詳情</span>
-                <input type="checkbox" v-model="showDetails" class="accent-emerald-400 w-5 h-5">
-            </label>
-            <textarea readonly class="input-bg w-full h-48 p-4 rounded-2xl text-[13px] font-mono leading-relaxed" v-model="shareMessage"></textarea>
-            <div class="grid grid-cols-2 gap-3">
-                <button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold">複製文字</button>
-                <button @click="shareWhatsApp" class="whatsapp-green py-4 rounded-2xl text-xs font-bold">WhatsApp</button>
+    <div v-if="showShareModal" class="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-4 md:p-6" @click.self="showShareModal = false">
+        <div class="card-bg w-full max-w-sm rounded-[32px] overflow-hidden flex flex-col shadow-2xl border border-white/10 max-h-[90vh]">
+            
+            <div class="flex border-b border-white/5 bg-white/5">
+                <button @click="shareTab = 'text'" :class="shareTab === 'text' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500'" class="flex-1 py-4 text-xs font-black uppercase tracking-widest transition-all">文字模式</button>
+                <button @click="switchImageTab" :class="shareTab === 'image' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-gray-500'" class="flex-1 py-4 text-xs font-black uppercase tracking-widest transition-all">圖片模式</button>
             </div>
-            <button @click="showTextShare = false" class="text-gray-500 text-[10px] font-bold uppercase">關閉</button>
+
+            <div class="p-6 overflow-y-auto">
+                <label class="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10 cursor-pointer mb-4">
+                    <span class="text-xs font-bold text-gray-300">列出消費詳情</span>
+                    <input type="checkbox" v-model="showDetails" @change="shareTab === 'image' && reGenerateImage()" class="accent-emerald-400 w-5 h-5">
+                </label>
+
+                <div v-if="shareTab === 'text'" class="space-y-4">
+                    <textarea readonly class="input-bg w-full h-48 p-4 rounded-2xl text-[13px] font-mono leading-relaxed" v-model="shareMessage"></textarea>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold active:scale-95 transition-all">複製文字</button>
+                        <button @click="shareWhatsApp" class="whatsapp-green py-4 rounded-2xl text-xs font-bold active:scale-95 transition-all">WhatsApp</button>
+                    </div>
+                </div>
+
+                <div v-if="shareTab === 'image'" class="space-y-4 flex flex-col items-center">
+                    <div class="relative bg-black/50 rounded-2xl overflow-hidden shadow-inner border border-white/5 w-full min-h-[200px] flex items-center justify-center">
+                        <div v-if="isGenerating" class="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-10 gap-2">
+                            <i class="fas fa-spinner fa-spin text-emerald-500 text-3xl"></i>
+                            <span class="text-[10px] font-bold text-emerald-500 uppercase">生成中...</span>
+                        </div>
+                        <img v-if="previewImg" :src="previewImg" class="max-w-full h-auto transition-opacity duration-300" :class="{'opacity-0': isGenerating}">
+                        <div v-else-if="!isGenerating" class="text-gray-600 text-xs italic">暫無預覽</div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3 w-full">
+                        <button @click="downloadImage" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold active:scale-95">下載圖片</button>
+                        <button @click="shareImage" class="evergreen-gradient text-white py-4 rounded-2xl text-xs font-bold active:scale-95">分享圖片</button>
+                    </div>
+                </div>
+            </div>
+
+            <button @click="showShareModal = false" class="py-4 text-gray-500 text-[10px] font-black uppercase tracking-widest bg-white/5 active:bg-white/10">關閉</button>
         </div>
     </div>
 
-    <div v-if="previewImg" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex flex-col items-center justify-center p-6" @click.self="previewImg = null">
-        <div class="w-full max-w-sm flex flex-col items-center">
-            <div class="w-full mb-4 flex items-center justify-between bg-white/10 p-4 rounded-3xl border border-white/20">
-                <span class="text-xs font-bold text-white">圖片包含消費詳情？</span>
-                <input type="checkbox" v-model="showDetails" @change="reGenerateImage" class="accent-emerald-400 w-6 h-6">
-            </div>
-            <div class="relative bg-black rounded-2xl overflow-hidden shadow-2xl mb-6">
-                <div v-if="isGenerating" class="absolute inset-0 flex items-center justify-center bg-black/50 z-10"><i class="fas fa-spinner fa-spin text-white text-3xl"></i></div>
-                <img :src="previewImg" class="max-w-full max-h-[50vh] transition-opacity" :class="{'opacity-50': isGenerating}">
-            </div>
-            <div class="grid grid-cols-2 gap-4 w-full">
-                <button @click="downloadImage" class="bg-white/10 text-white py-4 rounded-2xl text-xs font-bold border border-white/10">下載圖片</button>
-                <button @click="shareImage" class="evergreen-gradient text-white py-4 rounded-2xl text-xs font-bold">分享圖片</button>
-            </div>
-            <button @click="previewImg = null" class="mt-4 text-white/40 text-[10px] font-bold uppercase">返回</button>
-        </div>
-    </div>
-
-    <div v-if="showClearDialog" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-6" @click.self="showClearDialog = false">
+    <div v-if="showClearDialog" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[110] flex items-center justify-center p-6" @click.self="showClearDialog = false">
         <div class="card-bg w-full max-w-xs rounded-[32px] p-6 border border-white/10 shadow-2xl text-center">
-            <h3 class="font-black text-emerald-500 mb-6">你想清除什麼？</h3>
-            <div class="space-y-4 mb-8">
+            <h3 class="font-black text-emerald-500 mb-6 uppercase tracking-tighter">你想清除什麼？</h3>
+            <div class="space-y-4 mb-8 text-left">
                 <label class="flex items-center justify-between p-4 bg-white/5 rounded-2xl cursor-pointer"><span class="font-bold text-sm">消費紀錄</span><input type="checkbox" v-model="clearOptions.expenses" class="w-5 h-5 accent-emerald-500"></label>
                 <label class="flex items-center justify-between p-4 bg-white/5 rounded-2xl cursor-pointer"><span class="font-bold text-sm">朋友名單</span><input type="checkbox" v-model="clearOptions.users" class="w-5 h-5 accent-emerald-500"></label>
             </div>
@@ -262,28 +261,29 @@ createApp({
         const eventName = ref(""); const users = ref([]); const newUser = ref(""); const expenses = ref([]);
         const currentRate = ref(1); const manualShopRate = ref(0); const isManualRate = ref(false); const rateMode = ref('cash'); 
         const isRateCached = ref(false); const isEditing = ref(false); const editIndex = ref(null);
-        const isExporting = ref(false); const previewImg = ref(null); const showTextShare = ref(false);
+        const isExporting = ref(false); const previewImg = ref(null); 
+        const showShareModal = ref(false); const shareTab = ref('text'); // 分享分頁：'text' 或 'image'
         const showDetails = ref(false); const isGenerating = ref(false);
         const customCurrencyName = ref(""); 
         const showClearDialog = ref(false); const clearOptions = ref({ expenses: true, users: false });
         const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
         
-        // 日期處理 - 優化 iOS 兼容性
+        // 分享 Modal 邏輯
+        const openShareModal = () => { if(expenses.value.length === 0) return alert("請先記帳"); showShareModal.value = true; };
+        const switchImageTab = () => { shareTab.value = 'image'; reGenerateImage(); };
+
         const appendDate = (event) => {
             const selectedDate = event.target.value;
             if (!selectedDate) return;
             const [y, m, d] = selectedDate.split('-');
             const formattedDate = `${parseInt(d)}/${parseInt(m)}/${y}`;
-            
             let cleanName = eventName.value.replace(/ - \d{1,2}\/\d{1,2}\/\d{4}$/, '').trim();
             eventName.value = cleanName ? `${cleanName} - ${formattedDate}` : formattedDate;
-            
-            // 重置 input 以便下次選擇
             event.target.value = '';
         };
 
         const fetchRate = async () => {
-            if(form.value.currency === 'HKD' || form.value.currency === 'CUSTOM') { return 1; }
+            if(form.value.currency === 'HKD' || form.value.currency === 'CUSTOM') return 1;
             const cacheKey = `rate_cache_${form.value.currency}`;
             try { 
                 const res = await fetch(`https://open.er-api.com/v6/latest/${form.value.currency}`); 
@@ -321,15 +321,8 @@ createApp({
         };
 
         const confirmClear = () => {
-            if (clearOptions.value.expenses) {
-                expenses.value = [];
-                eventName.value = ""; 
-            }
-            if (clearOptions.value.users) { 
-                users.value = []; 
-                form.value.involved = []; 
-                form.value.payer = ""; 
-            }
+            if (clearOptions.value.expenses) { expenses.value = []; eventName.value = ""; }
+            if (clearOptions.value.users) { users.value = []; form.value.involved = []; form.value.payer = ""; }
             showClearDialog.value = false;
         };
 
@@ -341,7 +334,7 @@ createApp({
                     previewImg.value = canvas.toDataURL('image/png');
                 } catch (e) {}
                 isExporting.value = false; isGenerating.value = false;
-            }, 150);
+            }, 300); // 略微增加延遲確保 DOM 渲染完成
         };
 
         const settlements = computed(() => {
@@ -381,8 +374,8 @@ createApp({
         }, {deep: true});
 
         return { 
-            eventName, users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, manualShopRate, isManualRate, rateMode, isRateCached, isGenerating, customCurrencyName,
-            showClearDialog, clearOptions, confirmClear, appendDate,
+            eventName, users, newUser, form, expenses, isEditing, isExporting, previewImg, showShareModal, shareTab, shareMessage, showDetails, currentRate, manualShopRate, isManualRate, rateMode, isRateCached, isGenerating, customCurrencyName,
+            showClearDialog, clearOptions, confirmClear, appendDate, openShareModal, switchImageTab,
             addUser, addExpense, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
             personalStats: computed(() => users.value.map(u => {
                 let paid = 0, should = 0;
