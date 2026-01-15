@@ -109,7 +109,7 @@
                     <input v-model.number="form.amount" type="number" placeholder="金額" class="input-bg flex-1 p-4 rounded-2xl text-sm text-right font-mono font-bold outline-none">
                 </div>
 
-                <div v-if="form.currency !== 'HKD'" class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-2">
+                <div v-if="form.currency !== 'HKD'" class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
                     <div class="flex justify-between items-center">
                         <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">參考找換店匯率 (1 HKD =)</span>
                         <label class="flex items-center gap-1.5 cursor-pointer">
@@ -117,8 +117,14 @@
                             <span class="text-[10px] font-bold text-emerald-500 uppercase">自訂匯率</span>
                         </label>
                     </div>
+                    
+                    <div v-if="isManualRate" class="flex gap-2">
+                        <button @click="applyRateMode('cash')" :class="rateMode === 'cash' ? 'bg-emerald-600 text-white' : 'bg-white/5 text-gray-400'" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all">現金模式</button>
+                        <button @click="applyRateMode('card')" :class="rateMode === 'card' ? 'bg-blue-600 text-white shadow-[0_0_10px_rgba(37,99,235,0.3)]' : 'bg-white/5 text-gray-400'" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all">信用卡 (+1.95%)</button>
+                    </div>
+
                     <div class="relative">
-                        <input v-model.number="manualShopRate" @input="updateFromShopRate" :disabled="!isManualRate" type="number" step="0.01" class="input-bg w-full p-3 rounded-xl text-sm font-mono outline-none text-emerald-400 disabled:opacity-50" placeholder="輸入找換店匯率...">
+                        <input v-model.number="manualShopRate" @input="updateFromShopRate(); rateMode = 'custom'" :disabled="!isManualRate" type="number" step="0.001" class="input-bg w-full p-3 rounded-xl text-sm font-mono outline-none text-emerald-400 disabled:opacity-50" placeholder="輸入找換店匯率...">
                     </div>
                 </div>
 
@@ -197,7 +203,7 @@ createApp({
     setup() {
         const users = ref([]); const newUser = ref(""); const expenses = ref([]);
         const currentRate = ref(1); const manualShopRate = ref(0); 
-        const isManualRate = ref(false);
+        const isManualRate = ref(false); const rateMode = ref('cash'); 
         const isEditing = ref(false); const editIndex = ref(null);
         const isExporting = ref(false); const previewImg = ref(null); const showTextShare = ref(false);
         const showDetails = ref(true); const showClearDialog = ref(false);
@@ -214,19 +220,28 @@ createApp({
                     currentRate.value = rate;
                     manualShopRate.value = Number((1 / rate).toFixed(3));
                 }
-            } catch (e) { currentRate.value = 1; }
+                return rate; // 返回基礎匯率供其他功能使用
+            } catch (e) { currentRate.value = 1; return 1; }
         };
 
-        // 新增：處理手動開關切換後的 Reset
-        const handleManualToggle = () => {
-            if (!isManualRate.value) {
-                fetchRate(); // 關閉手動時，強制抓取網絡最新匯率並重置
+        const applyRateMode = async (mode) => {
+            rateMode.value = mode;
+            const baseRate = await fetchRate(); // 獲取最新基準
+            if (mode === 'card') {
+                // 信用卡模式：用戶付的外幣不變，但結算的 HKD 金額增加 1.95%
+                // 換句話說，匯率要乘 1.0195
+                currentRate.value = baseRate * 1.0195;
+                manualShopRate.value = Number((1 / currentRate.value).toFixed(3));
+            } else {
+                currentRate.value = baseRate;
+                manualShopRate.value = Number((1 / baseRate).toFixed(3));
             }
         };
 
+        const handleManualToggle = () => { if (!isManualRate.value) { rateMode.value = 'cash'; fetchRate(); } };
         const updateFromShopRate = () => { if (manualShopRate.value > 0) currentRate.value = 1 / manualShopRate.value; };
         const handleCurrencyChange = () => { 
-            isManualRate.value = false; 
+            isManualRate.value = false; rateMode.value = 'cash';
             if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; } else fetchRate(); 
         };
         const addUser = () => { const n = newUser.value.trim(); if (n && !users.value.includes(n)) { users.value.push(n); form.value.involved.push(n); if(!form.value.payer) form.value.payer = n; newUser.value = ""; } };
@@ -240,7 +255,7 @@ createApp({
         const startEdit = (i) => {
             isEditing.value = true; editIndex.value = i; const exp = expenses.value[i];
             form.value = JSON.parse(JSON.stringify(exp)); currentRate.value = exp.rateUsed || 1;
-            isManualRate.value = true; 
+            isManualRate.value = true; rateMode.value = 'custom';
             manualShopRate.value = Number((1 / currentRate.value).toFixed(3));
             window.scrollTo({ top: document.getElementById('input-section').offsetTop - 100, behavior: 'smooth' });
         };
@@ -299,8 +314,8 @@ createApp({
         watch([users, expenses], () => { localStorage.setItem('mathgod_v55_data', JSON.stringify({ users: users.value, expenses: expenses.value })); }, {deep: true});
 
         return { 
-            users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, manualShopRate, isManualRate,
-            showClearDialog, clearOptions, confirmClear, updateFromShopRate, handleManualToggle,
+            users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, manualShopRate, isManualRate, rateMode,
+            showClearDialog, clearOptions, confirmClear, updateFromShopRate, handleManualToggle, applyRateMode,
             addUser, addExpense, startEdit, saveEdit, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
             handleCurrencyChange, fetchRate, generateImage, downloadImage:()=> { const l=document.createElement('a'); l.download='MathGod.png'; l.href=previewImg.value; l.click(); },
             shareImage: async()=> { const r=await fetch(previewImg.value); const b=await r.blob(); const f=new File([b],'s.png',{type:'image/png'}); if(navigator.share) await navigator.share({files:[f]}); },
