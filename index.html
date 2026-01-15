@@ -348,7 +348,7 @@ createApp({
         });
 
         const shareMessage = computed(() => {
-            let msg = `【⚡️埋單計數】 ${eventName.value ? \n'📆 ' + eventName.value : ''}\n📊 總支出：HK$${expenses.value.reduce((s,e)=>s+e.hkd,0).toFixed(1)}\n\n✅ 找數列表：\n`;
+            let msg = `【⚡️埋單計數】 ${eventName.value ? '\n📆 ' + eventName.value : ''}\n📊 總支出：HK$${expenses.value.reduce((s,e)=>s+e.hkd,0).toFixed(1)}\n\n✅ 找數列表：\n`;
             settlements.value.forEach(s => msg += `🔹 ${s.from} ➔ ${s.to}：HK$${s.amount.toFixed(1)}\n`);
             if (showDetails.value && expenses.value.length > 0) {
                 msg += `\n📝 消費詳情：\n`; expenses.value.forEach(e => msg += `▫️ ${e.item} (${e.payer})：${e.currency}${e.amount}\n`);
