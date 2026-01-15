@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>數神 MathGod － 香港人的夾錢APP</title>
-    <link rel="icon" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/svgs/solid/bolt.svg">
+    <link rel="icon" type="image/png" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/svgs/solid/bolt.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -56,7 +56,7 @@
         <div id="capture-zone">
             <section v-if="expenses.length > 0" class="bg-emerald-950/20 border border-emerald-900/40 p-6 rounded-[32px] mb-2">
                 <div class="flex justify-between items-start mb-6">
-                    <div><h2 class="font-black text-emerald-500 text-xl tracking-tight safe-render">最終結算</h2><p class="text-[10px] text-gray-500 -mt-2">Settlement</p></div>
+                    <div><h2 class="font-black text-emerald-500 text-xl tracking-tight safe-render">埋單計數</h2><p class="text-[10px] text-gray-500 -mt-2">Settlement</p></div>
                     <div class="text-right">
                         <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1 safe-render">總消費 Total Spent</div>
                         <div class="font-mono font-bold text-emerald-500 text-lg">HK${{ totalSpent.toFixed(1) }}</div>
@@ -217,15 +217,14 @@ createApp({
             } catch (e) { currentRate.value = 1; }
         };
 
-        const updateFromShopRate = () => { if (manualShopRate.value > 0) currentRate.value = 1 / manualShopRate.value; };
-        
-        // 新增：處理 Tick Box 切換
+        // 新增：處理手動開關切換後的 Reset
         const handleManualToggle = () => {
             if (!isManualRate.value) {
-                fetchRate(); // 關閉手動時立即重置為即時匯率
+                fetchRate(); // 關閉手動時，強制抓取網絡最新匯率並重置
             }
         };
 
+        const updateFromShopRate = () => { if (manualShopRate.value > 0) currentRate.value = 1 / manualShopRate.value; };
         const handleCurrencyChange = () => { 
             isManualRate.value = false; 
             if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; } else fetchRate(); 
@@ -241,7 +240,7 @@ createApp({
         const startEdit = (i) => {
             isEditing.value = true; editIndex.value = i; const exp = expenses.value[i];
             form.value = JSON.parse(JSON.stringify(exp)); currentRate.value = exp.rateUsed || 1;
-            isManualRate.value = true;
+            isManualRate.value = true; 
             manualShopRate.value = Number((1 / currentRate.value).toFixed(3));
             window.scrollTo({ top: document.getElementById('input-section').offsetTop - 100, behavior: 'smooth' });
         };
@@ -276,7 +275,7 @@ createApp({
         });
 
         const shareMessage = computed(() => {
-            let msg = `⚡️最後結算\n📊 總支出：HK$${expenses.value.reduce((s,e)=>s+e.hkd,0).toFixed(1)}\n\n✅ 埋單計數：\n`;
+            let msg = `⚡️埋單計數\n📊 總支出：HK$${expenses.value.reduce((s,e)=>s+e.hkd,0).toFixed(1)}\n\n✅ 找數列表：\n`;
             settlements.value.forEach(s => msg += `🔹 ${s.from} ➔ ${s.to}：HK$${s.amount.toFixed(1)}\n`);
             if (showDetails.value && expenses.value.length > 0) {
                 msg += `\n📝 消費詳情：\n`; expenses.value.forEach(e => msg += `▫️ ${e.item} (${e.payer})：${e.currency}${e.amount}\n`);
