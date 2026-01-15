@@ -78,13 +78,15 @@
                 <div class="border-t border-white/5 pt-4">
                     <p class="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">個人收支概覽 Dashboard</p>
                     <div class="grid grid-cols-2 gap-2">
-                        <div v-for="stat in personalStats" :key="stat.name" class="bg-white/5 p-3 rounded-xl flex flex-col items-center">
-                            <span class="text-[10px] font-bold text-gray-400 truncate w-full text-center mb-1">{{ stat.name }}</span>
-                            <span :class="stat.net >= 0 ? 'text-emerald-500' : 'text-rose-500'" class="font-mono text-xs font-bold italic">
-                                {{ stat.net >= 0 ? '+' : '' }}{{ stat.net.toFixed(0) }}
-                            </span>
-                        </div>
-                    </div>
+    <div v-for="stat in personalStats" :key="stat.name" class="bg-white/5 p-3 rounded-xl flex flex-col items-center">
+        <span class="text-[10px] font-bold text-gray-400 truncate w-full text-center safe-render" style="line-height: 2 !important;">
+            {{ stat.name }}
+        </span>
+        <span :class="stat.net >= 0 ? 'text-emerald-500' : 'text-rose-500'" class="font-mono text-xs font-bold italic">
+            {{ stat.net >= 0 ? '+' : '' }}{{ stat.net.toFixed(0) }}
+        </span>
+    </div>
+</div>
                 </div>
             </section>
             
