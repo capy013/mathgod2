@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>數神 MathGod － 香港人的夾錢APP</title>
+    <title>數神 MathGod (完整功能精簡版)</title>
     <link rel="icon" type="image/png" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/svgs/solid/bolt.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
@@ -18,9 +18,9 @@
         #capture-zone { background-color: #121212 !important; border-radius: 24px; padding: 24px; }
         .whatsapp-green { background-color: #25D366; color: white; }
         .safe-render { line-height: 1.8 !important; padding-bottom: 6px !important; padding-right: 6px !important; display: inline-block !important; vertical-align: middle; }
+        .status-tag { font-size: 8px; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
         .header-input { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.15); color: white; }
-        .header-input::placeholder { color: rgba(255,255,255,0.3); }
-        .toggle-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
+        .header-input::placeholder { color: rgba(255,255,255,0.4); }
     </style>
 </head>
 <body class="min-h-screen">
@@ -33,8 +33,8 @@
                 <i class="fas fa-bolt mr-1 text-yellow-400"></i>數神
             </h1>
             <div class="flex gap-2">
-                <button @click="showTextShare = true" class="bg-white/10 px-4 py-2 rounded-full border border-white/20 text-[10px] font-bold active:scale-95">文字分享</button>
-                <button @click="openImagePreview" class="bg-white/20 px-4 py-2 rounded-full border border-white/30 text-[10px] font-bold active:scale-95">截圖分享</button>
+                <button @click="showTextShare = true" class="bg-white/10 px-4 py-2 rounded-full border border-white/20 text-[10px] font-bold active:scale-95 transition-all">文字分享</button>
+                <button @click="openImagePreview" class="bg-white/20 px-4 py-2 rounded-full border border-white/30 text-[10px] font-bold active:scale-95 transition-all">截圖分享</button>
             </div>
         </div>
 
@@ -44,7 +44,7 @@
     </header>
 
     <div class="p-4 space-y-6">
-        <section v-if="!isExporting" class="card-bg p-5 rounded-3xl">
+        <section v-if="!isExporting" class="card-bg p-5 rounded-3xl shadow-sm">
             <h2 class="font-bold text-emerald-500 mb-4 text-xs uppercase tracking-widest">加入朋友</h2>
             <div class="flex gap-2 mb-4">
                 <input v-model="newUser" @keyup.enter="addUser" type="text" placeholder="名稱..." class="input-bg flex-1 p-3 rounded-2xl text-sm outline-none">
@@ -65,7 +65,7 @@
                         <p class="text-[10px] text-gray-500 -mt-2">Settlement Summary</p>
                     </div>
                     <div class="text-right">
-                        <div class="text-[10px] font-bold text-gray-500 uppercase mb-1">總消費 Total</div>
+                        <div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">總消費 Total</div>
                         <div class="font-mono font-bold text-emerald-500 text-lg">HK${{ totalSpent.toFixed(1) }}</div>
                     </div>
                 </div>
@@ -82,7 +82,7 @@
                 </div>
 
                 <div class="border-t border-white/5 pt-4">
-                    <p class="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">個人收支概覽</p>
+                    <p class="text-[9px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-3 text-center">個人收支概覽 Dashboard</p>
                     <div class="grid grid-cols-2 gap-2">
                         <div v-for="stat in personalStats" :key="stat.name" class="bg-white/5 p-3 rounded-xl flex flex-col items-center">
                             <span class="text-[10px] font-bold text-gray-400 truncate w-full text-center safe-render">{{ stat.name }}</span>
@@ -94,13 +94,13 @@
             
             <div v-if="showDetails && expenses.length > 0" class="mt-4">
                 <div class="py-4 flex items-center gap-3 opacity-60">
-                    <div class="h-px bg-gray-700 flex-1"></div><span class="text-[10px] font-bold text-gray-400 uppercase">消費詳情 Details</span><div class="h-px bg-gray-700 flex-1"></div>
+                    <div class="h-px bg-gray-700 flex-1"></div><span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">消費詳情 Details</span><div class="h-px bg-gray-700 flex-1"></div>
                 </div>
                 <div class="space-y-3">
-                    <div v-for="(exp, idx) in expenses" :key="exp.id" class="card-bg p-4 rounded-2xl flex justify-between items-center border-l-4 border-emerald-600">
+                    <div v-for="exp in expenses" :key="exp.id" class="card-bg p-4 rounded-2xl flex justify-between items-center border-l-4 border-emerald-600 shadow-sm relative">
                         <div class="flex-1 min-w-0 mr-4">
-                            <div class="font-black text-sm text-gray-200 truncate">{{ exp.item }}</div>
-                            <div class="text-[10px] text-gray-500"><b class="text-emerald-600">{{ exp.payer }}</b> 付 {{ exp.currency }} {{ exp.amount }}</div>
+                            <div class="font-black text-sm text-gray-200 truncate safe-render">{{ exp.item }}</div>
+                            <div class="text-[10px] text-gray-500"><b class="text-emerald-600 uppercase">{{ exp.payer }}</b> 付 {{ exp.currency }} {{ exp.amount }}</div>
                         </div>
                         <div class="font-mono font-bold text-gray-200">HK${{ exp.hkd.toFixed(1) }}</div>
                     </div>
@@ -108,21 +108,7 @@
             </div>
         </div>
 
-        <section v-if="expenses.length > 0 && !isExporting" class="space-y-3">
-            <h3 class="text-[10px] font-bold text-gray-500 uppercase ml-2 tracking-widest">最近紀錄</h3>
-            <div v-for="(exp, idx) in expenses" :key="exp.id" class="card-bg p-4 rounded-2xl flex justify-between items-center border-l-4 border-emerald-600">
-                <div class="flex-1 min-w-0 mr-4">
-                    <div class="font-black text-sm text-gray-200 truncate">{{ exp.item }}</div>
-                    <div class="text-[10px] text-gray-500">HKD {{ exp.hkd.toFixed(1) }} (由 {{ exp.payer }} 支付)</div>
-                </div>
-                <div class="flex gap-3 opacity-40 text-xs">
-                    <button @click="startEdit(idx)"><i class="fas fa-edit"></i></button>
-                    <button @click="removeExpense(idx)" class="text-red-500"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>
-        </section>
-
-        <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border border-white/5">
+        <section v-if="!isExporting" id="input-section" class="card-bg rounded-3xl p-6 border border-white/5 mt-6">
             <div class="space-y-5">
                 <input v-model="form.item" type="text" placeholder="項目 (例如: 午飯)" class="input-bg w-full p-4 rounded-2xl text-sm outline-none">
                 <div class="flex gap-2">
@@ -136,6 +122,22 @@
                     </select>
                     <input v-model.number="form.amount" type="number" placeholder="金額" class="input-bg flex-1 p-4 rounded-2xl text-sm text-right font-mono font-bold outline-none">
                 </div>
+
+                <div v-if="form.currency !== 'HKD'" class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">匯率 (1 HKD =) <span v-if="isRateCached" class="status-tag bg-amber-500/20 text-amber-500">快取數據</span></span>
+                        <label v-if="form.currency !== 'CUSTOM'" class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="checkbox" v-model="isManualRate" @change="handleManualToggle" class="w-3.5 h-3.5 accent-emerald-500 rounded">
+                            <span class="text-[10px] font-bold text-emerald-500 uppercase">自訂匯率</span>
+                        </label>
+                    </div>
+                    <div v-if="isManualRate && form.currency !== 'CUSTOM'" class="flex gap-2">
+                        <button @click="applyRateMode('cash')" :class="rateMode === 'cash' ? 'bg-emerald-600 text-white' : 'bg-white/5 text-gray-400'" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold">現金</button>
+                        <button @click="applyRateMode('card')" :class="rateMode === 'card' ? 'bg-blue-600 text-white' : 'bg-white/5 text-gray-400'" class="flex-1 py-1.5 rounded-lg text-[10px] font-bold">信用卡</button>
+                    </div>
+                    <input v-model.number="manualShopRate" @input="updateFromShopRate" :disabled="!isManualRate" type="number" step="0.001" class="input-bg w-full p-3 rounded-xl text-sm font-mono outline-none text-emerald-400 disabled:opacity-50">
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div class="space-y-2">
                         <label class="text-[10px] font-bold text-gray-500">誰付款？</label>
@@ -144,7 +146,7 @@
                         </select>
                     </div>
                     <div class="space-y-2">
-                        <div class="flex justify-between items-center"><label class="text-[10px] font-bold text-gray-500">誰參與？</label></div>
+                        <div class="flex justify-between items-center"><label class="text-[10px] font-bold text-gray-500">誰參與？</label> <button @click="toggleSelectAll" class="text-[10px] text-emerald-500 font-bold uppercase">全選</button></div>
                         <div class="input-bg max-h-32 overflow-y-auto rounded-2xl p-3 text-[10px]">
                             <div v-for="u in users" :key="u" class="flex items-center gap-3 mb-2">
                                 <input type="checkbox" :value="u" v-model="form.involved" class="w-4 h-4 rounded accent-emerald-500">
@@ -153,52 +155,60 @@
                         </div>
                     </div>
                 </div>
+
                 <button @click="isEditing ? saveEdit() : addExpense()" class="w-full text-white font-black py-5 rounded-[20px] evergreen-gradient shadow-xl text-sm tracking-widest active:scale-95 transition-all">
                     {{ isEditing ? '儲存修改' : '確認記帳' }}
+                    <span v-if="form.amount" class="ml-1 opacity-70 text-xs font-mono"> (HK${{ (form.amount * currentRate).toFixed(1) }}) </span>
                 </button>
+            </div>
+        </section>
+
+        <section v-if="expenses.length > 0 && !isExporting" class="space-y-3">
+            <h3 class="text-[10px] font-bold text-gray-500 uppercase ml-2 tracking-widest">最近紀錄</h3>
+            <div v-for="(exp, idx) in expenses" :key="exp.id" class="card-bg p-4 rounded-2xl flex justify-between items-center border-l-4 border-emerald-600">
+                <div class="flex-1 min-w-0 mr-4">
+                    <div class="font-black text-sm text-gray-200 truncate">{{ exp.item }}</div>
+                    <div class="text-[10px] text-gray-500">HKD {{ exp.hkd.toFixed(1) }} ({{ exp.payer }} 付)</div>
+                </div>
+                <div class="flex gap-4 opacity-40">
+                    <button @click="startEdit(idx)"><i class="fas fa-edit"></i></button>
+                    <button @click="removeExpense(idx)" class="text-red-500"><i class="fas fa-trash"></i></button>
+                </div>
             </div>
         </section>
     </div>
 
     <div v-if="showTextShare" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[60] flex items-center justify-center p-6" @click.self="showTextShare = false">
-        <div class="card-bg w-full max-w-sm rounded-[32px] p-6 flex flex-col gap-4 shadow-2xl relative">
-            <h3 class="font-black text-emerald-500 text-sm">文字結算分享</h3>
-            
+        <div class="card-bg w-full max-w-sm rounded-[32px] p-6 flex flex-col gap-4 shadow-2xl relative border border-white/10">
+            <h3 class="font-black text-emerald-500 text-sm">分享文字結果</h3>
             <label class="flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/10 cursor-pointer">
                 <span class="text-xs font-bold text-gray-300">列出消費詳情</span>
                 <input type="checkbox" v-model="showDetails" class="accent-emerald-400 w-5 h-5">
             </label>
-
             <textarea readonly class="input-bg w-full h-48 p-4 rounded-2xl text-[13px] font-mono leading-relaxed" v-model="shareMessage"></textarea>
-            
             <div class="grid grid-cols-2 gap-3">
                 <button @click="copyText" class="bg-gray-700 text-white py-4 rounded-2xl text-xs font-bold">複製文字</button>
                 <button @click="shareWhatsApp" class="whatsapp-green py-4 rounded-2xl text-xs font-bold">WhatsApp</button>
             </div>
-            <button @click="showTextShare = false" class="text-gray-500 text-xs font-bold uppercase py-2">關閉</button>
+            <button @click="showTextShare = false" class="text-gray-500 text-[10px] font-bold uppercase">關閉視窗</button>
         </div>
     </div>
 
     <div v-if="previewImg" class="fixed inset-0 bg-black/90 backdrop-blur-md z-[70] flex flex-col items-center justify-center p-6" @click.self="previewImg = null">
         <div class="w-full max-w-sm flex flex-col items-center">
-            
             <div class="w-full mb-4 flex items-center justify-between bg-white/10 p-4 rounded-3xl border border-white/20">
                 <span class="text-xs font-bold text-white">圖片包含消費詳情？</span>
                 <input type="checkbox" v-model="showDetails" @change="reGenerateImage" class="accent-emerald-400 w-6 h-6">
             </div>
-
             <div class="relative bg-black rounded-2xl overflow-hidden shadow-2xl mb-6">
-                <div v-if="isGenerating" class="absolute inset-0 flex items-center justify-center bg-black/50 z-10">
-                    <i class="fas fa-spinner fa-spin text-white text-3xl"></i>
-                </div>
+                <div v-if="isGenerating" class="absolute inset-0 flex items-center justify-center bg-black/50 z-10"><i class="fas fa-spinner fa-spin text-white text-3xl"></i></div>
                 <img :src="previewImg" class="max-w-full max-h-[50vh] transition-opacity" :class="{'opacity-50': isGenerating}">
             </div>
-
             <div class="grid grid-cols-2 gap-4 w-full">
                 <button @click="downloadImage" class="bg-white/10 text-white py-4 rounded-2xl text-xs font-bold border border-white/10">下載圖片</button>
                 <button @click="shareImage" class="evergreen-gradient text-white py-4 rounded-2xl text-xs font-bold">分享圖片</button>
             </div>
-            <button @click="previewImg = null" class="mt-4 text-white/50 text-xs font-bold uppercase">返回修改</button>
+            <button @click="previewImg = null" class="mt-4 text-white/40 text-[10px] font-bold uppercase">返回</button>
         </div>
     </div>
 
@@ -208,42 +218,56 @@
 const { createApp, ref, computed, watch, onMounted } = Vue;
 createApp({
     setup() {
-        const eventName = ref("");
-        const users = ref([]); const newUser = ref(""); const expenses = ref([]);
-        const currentRate = ref(1); const isEditing = ref(false); const editIndex = ref(null);
+        const eventName = ref(""); const users = ref([]); const newUser = ref(""); const expenses = ref([]);
+        const currentRate = ref(1); const manualShopRate = ref(0); const isManualRate = ref(false); const rateMode = ref('cash'); 
+        const isRateCached = ref(false); const isEditing = ref(false); const editIndex = ref(null);
         const isExporting = ref(false); const previewImg = ref(null); const showTextShare = ref(false);
-        const showDetails = ref(false); // 預設不列出詳情
-        const isGenerating = ref(false);
+        const showDetails = ref(false); const isGenerating = ref(false);
         const form = ref({ item: "", amount: "", currency: "HKD", payer: "", involved: [] });
 
-        // 開啟截圖預覽
-        const openImagePreview = async () => {
-            await reGenerateImage();
+        const fetchRate = async () => {
+            if(form.value.currency === 'HKD' || form.value.currency === 'CUSTOM') { return 1; }
+            const cacheKey = `rate_cache_${form.value.currency}`;
+            try { 
+                const res = await fetch(`https://open.er-api.com/v6/latest/${form.value.currency}`); 
+                const data = await res.json(); const rate = data.rates.HKD || 1;
+                localStorage.setItem(cacheKey, rate); isRateCached.value = false;
+                if (!isManualRate.value) { currentRate.value = rate; manualShopRate.value = Number((1/rate).toFixed(3)); }
+                return rate;
+            } catch (e) { 
+                const cached = localStorage.getItem(cacheKey);
+                if (cached) { const rate = parseFloat(cached); currentRate.value = rate; manualShopRate.value = Number((1/rate).toFixed(3)); isRateCached.value = true; return rate; }
+                return 1; 
+            }
         };
 
-        // 重新生成截圖 (當詳情勾選改變時)
-        const reGenerateImage = async () => {
-            isGenerating.value = true;
-            isExporting.value = true;
-            setTimeout(async () => {
-                try {
-                    const canvas = await html2canvas(document.getElementById('capture-zone'), { 
-                        backgroundColor: '#121212', 
-                        scale: 2, 
-                        useCORS: true 
-                    });
-                    previewImg.value = canvas.toDataURL('image/png');
-                } catch (e) { alert('生成失敗'); }
-                isExporting.value = false;
-                isGenerating.value = false;
-            }, 100);
+        const applyRateMode = async (mode) => {
+            rateMode.value = mode; const baseRate = (form.value.currency === 'CUSTOM') ? (1/manualShopRate.value) : await fetchRate();
+            if (mode === 'card') { currentRate.value = baseRate * 1.0195; manualShopRate.value = Number((1/currentRate.value).toFixed(3)); } 
+            else { currentRate.value = baseRate; manualShopRate.value = Number((1/baseRate).toFixed(3)); }
         };
+
+        const updateFromShopRate = () => { if (manualShopRate.value > 0) currentRate.value = 1 / manualShopRate.value; };
+        const handleManualToggle = () => { if (!isManualRate.value) { rateMode.value = 'cash'; fetchRate(); } };
+        const handleCurrencyChange = () => { if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; isManualRate.value = false; } else { fetchRate(); } };
+        const toggleSelectAll = () => { form.value.involved = form.value.involved.length === users.value.length ? [] : [...users.value]; };
 
         const addUser = () => { const n = newUser.value.trim(); if (n && !users.value.includes(n)) { users.value.push(n); form.value.involved.push(n); if(!form.value.payer) form.value.payer = n; newUser.value = ""; } };
         const addExpense = () => {
             if (!form.value.item || !form.value.amount || !form.value.payer) return alert("請填寫正確資料");
-            expenses.value.unshift({ id: Date.now(), ...form.value, currency: form.value.currency, hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value, involved: [...form.value.involved] });
+            expenses.value.unshift({ id: Date.now(), ...form.value, hkd: form.value.amount * currentRate.value, rateUsed: currentRate.value, involved: [...form.value.involved] });
             form.value.item = ""; form.value.amount = "";
+        };
+
+        const reGenerateImage = async () => {
+            isGenerating.value = true; isExporting.value = true;
+            setTimeout(async () => {
+                try {
+                    const canvas = await html2canvas(document.getElementById('capture-zone'), { backgroundColor: '#121212', scale: 2, useCORS: true });
+                    previewImg.value = canvas.toDataURL('image/png');
+                } catch (e) {}
+                isExporting.value = false; isGenerating.value = false;
+            }, 150);
         };
 
         const settlements = computed(() => {
@@ -274,7 +298,6 @@ createApp({
             msg += `\n大家可以找數啦！`; return msg;
         });
 
-        // 其餘邏輯保持一致...
         onMounted(() => {
             const saved = localStorage.getItem('mathgod_v55_data');
             if (saved) { try { const d = JSON.parse(saved); users.value = d.users || []; expenses.value = d.expenses || []; eventName.value = d.eventName || ""; } catch (e) {} }
@@ -284,14 +307,14 @@ createApp({
         }, {deep: true});
 
         return { 
-            eventName, users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, isGenerating,
+            eventName, users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, manualShopRate, isManualRate, rateMode, isRateCached, isGenerating,
             addUser, addExpense, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
             personalStats: computed(() => users.value.map(u => {
                 let paid = 0, should = 0;
                 expenses.value.forEach(e => { if(e.payer===u) paid+=e.hkd; if(e.involved.includes(u)) should+=e.hkd/e.involved.length; });
                 return { name: u, net: paid-should };
             })),
-            openImagePreview, reGenerateImage,
+            handleCurrencyChange, handleManualToggle, applyRateMode, updateFromShopRate, toggleSelectAll, openImagePreview: reGenerateImage, reGenerateImage,
             downloadImage:()=> { const l=document.createElement('a'); l.download='MathGod.png'; l.href=previewImg.value; l.click(); },
             shareImage: async()=> { const r=await fetch(previewImg.value); const b=await r.blob(); const f=new File([b],'s.png',{type:'image/png'}); if(navigator.share) await navigator.share({files:[f]}); },
             copyText:()=> { navigator.clipboard.writeText(shareMessage.value); alert("已複製！"); },
