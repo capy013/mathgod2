@@ -111,10 +111,13 @@
                 <div v-if="form.currency !== 'HKD'" class="bg-white/5 border border-white/10 p-4 rounded-2xl space-y-2">
                     <div class="flex justify-between items-center">
                         <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">參考找換店匯率 (1 HKD =)</span>
-                        <div class="text-emerald-500 text-xs font-mono font-bold">{{ (1/currentRate).toFixed(3) }}</div>
+                        <label class="flex items-center gap-1.5 cursor-pointer">
+                            <input type="checkbox" v-model="isManualRate" class="w-3.5 h-3.5 accent-emerald-500 rounded">
+                            <span class="text-[10px] font-bold text-emerald-500 uppercase">自訂匯率</span>
+                        </label>
                     </div>
                     <div class="relative">
-                        <input v-model.number="manualShopRate" @input="updateFromShopRate" type="number" step="0.01" class="input-bg w-full p-3 rounded-xl text-sm font-mono outline-none text-emerald-400" placeholder="輸入找換店匯率...">
+                        <input v-model.number="manualShopRate" @input="updateFromShopRate" :disabled="!isManualRate" type="number" step="0.01" class="input-bg w-full p-3 rounded-xl text-sm font-mono outline-none text-emerald-400 disabled:opacity-50" placeholder="輸入找換店匯率...">
                     </div>
                 </div>
 
@@ -188,12 +191,12 @@
 </div>
 
 <script>
-// Logic 保持不變，僅在模板中將計算邏輯移入 Button
 const { createApp, ref, computed, watch, onMounted } = Vue;
 createApp({
     setup() {
         const users = ref([]); const newUser = ref(""); const expenses = ref([]);
         const currentRate = ref(1); const manualShopRate = ref(0); 
+        const isManualRate = ref(false); // 新增：控制是否手動
         const isEditing = ref(false); const editIndex = ref(null);
         const isExporting = ref(false); const previewImg = ref(null); const showTextShare = ref(false);
         const showDetails = ref(true); const showClearDialog = ref(false);
@@ -205,13 +208,20 @@ createApp({
             try { 
                 const res = await fetch(`https://open.er-api.com/v6/latest/${form.value.currency}`); 
                 const data = await res.json(); 
-                currentRate.value = data.rates.HKD || 1; 
-                manualShopRate.value = Number((1 / currentRate.value).toFixed(3));
+                const rate = data.rates.HKD || 1;
+                // 只有在非手動模式下才自動更新 manualShopRate
+                if (!isManualRate.value) {
+                    currentRate.value = rate;
+                    manualShopRate.value = Number((1 / rate).toFixed(3));
+                }
             } catch (e) { currentRate.value = 1; }
         };
 
         const updateFromShopRate = () => { if (manualShopRate.value > 0) currentRate.value = 1 / manualShopRate.value; };
-        const handleCurrencyChange = () => { if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; } else fetchRate(); };
+        const handleCurrencyChange = () => { 
+            isManualRate.value = false; // 切換幣種時重設為自動模式
+            if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; } else fetchRate(); 
+        };
         const addUser = () => { const n = newUser.value.trim(); if (n && !users.value.includes(n)) { users.value.push(n); form.value.involved.push(n); if(!form.value.payer) form.value.payer = n; newUser.value = ""; } };
         
         const addExpense = () => {
@@ -223,6 +233,7 @@ createApp({
         const startEdit = (i) => {
             isEditing.value = true; editIndex.value = i; const exp = expenses.value[i];
             form.value = JSON.parse(JSON.stringify(exp)); currentRate.value = exp.rateUsed || 1;
+            isManualRate.value = true; // 編輯時預設開啟手動以保留原匯率
             manualShopRate.value = Number((1 / currentRate.value).toFixed(3));
             window.scrollTo({ top: document.getElementById('input-section').offsetTop - 100, behavior: 'smooth' });
         };
@@ -281,7 +292,7 @@ createApp({
         watch([users, expenses], () => { localStorage.setItem('mathgod_v55_data', JSON.stringify({ users: users.value, expenses: expenses.value })); }, {deep: true});
 
         return { 
-            users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, manualShopRate,
+            users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, manualShopRate, isManualRate,
             showClearDialog, clearOptions, confirmClear, updateFromShopRate,
             addUser, addExpense, startEdit, saveEdit, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
             handleCurrencyChange, fetchRate, generateImage, downloadImage:()=> { const l=document.createElement('a'); l.download='MathGod.png'; l.href=previewImg.value; l.click(); },
