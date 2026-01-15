@@ -268,7 +268,7 @@ createApp({
             const [y, m, d] = selectedDate.split('-');
             const formattedDate = `${parseInt(d)}/${parseInt(m)}/${y}`;
             
-            // 清理已有的日期 (防止重複疊加: "食飯 - 1/1 - 2/1")
+            // 清理已有的日期 (防止重複疊加)
             let cleanName = eventName.value.replace(/ - \d{1,2}\/\d{1,2}\/\d{4}$/, '').trim();
             eventName.value = cleanName ? `${cleanName} - ${formattedDate}` : formattedDate;
         };
@@ -311,9 +311,17 @@ createApp({
             form.value.item = ""; form.value.amount = "";
         };
 
+        // 修改點：當清除消費紀錄時，同時清空活動名稱
         const confirmClear = () => {
-            if (clearOptions.value.expenses) expenses.value = [];
-            if (clearOptions.value.users) { users.value = []; form.value.involved = []; form.value.payer = ""; }
+            if (clearOptions.value.expenses) {
+                expenses.value = [];
+                eventName.value = ""; // 清空活動名
+            }
+            if (clearOptions.value.users) { 
+                users.value = []; 
+                form.value.involved = []; 
+                form.value.payer = ""; 
+            }
             showClearDialog.value = false;
         };
 
