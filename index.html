@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>數神 MathGod － 香港人的夾錢APP</title>
+    <link rel="icon" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/svgs/solid/bolt.svg">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -112,7 +113,7 @@
                     <div class="flex justify-between items-center">
                         <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">參考找換店匯率 (1 HKD =)</span>
                         <label class="flex items-center gap-1.5 cursor-pointer">
-                            <input type="checkbox" v-model="isManualRate" class="w-3.5 h-3.5 accent-emerald-500 rounded">
+                            <input type="checkbox" v-model="isManualRate" @change="handleManualToggle" class="w-3.5 h-3.5 accent-emerald-500 rounded">
                             <span class="text-[10px] font-bold text-emerald-500 uppercase">自訂匯率</span>
                         </label>
                     </div>
@@ -196,7 +197,7 @@ createApp({
     setup() {
         const users = ref([]); const newUser = ref(""); const expenses = ref([]);
         const currentRate = ref(1); const manualShopRate = ref(0); 
-        const isManualRate = ref(false); // 新增：控制是否手動
+        const isManualRate = ref(false);
         const isEditing = ref(false); const editIndex = ref(null);
         const isExporting = ref(false); const previewImg = ref(null); const showTextShare = ref(false);
         const showDetails = ref(true); const showClearDialog = ref(false);
@@ -209,7 +210,6 @@ createApp({
                 const res = await fetch(`https://open.er-api.com/v6/latest/${form.value.currency}`); 
                 const data = await res.json(); 
                 const rate = data.rates.HKD || 1;
-                // 只有在非手動模式下才自動更新 manualShopRate
                 if (!isManualRate.value) {
                     currentRate.value = rate;
                     manualShopRate.value = Number((1 / rate).toFixed(3));
@@ -218,8 +218,16 @@ createApp({
         };
 
         const updateFromShopRate = () => { if (manualShopRate.value > 0) currentRate.value = 1 / manualShopRate.value; };
+        
+        // 新增：處理 Tick Box 切換
+        const handleManualToggle = () => {
+            if (!isManualRate.value) {
+                fetchRate(); // 關閉手動時立即重置為即時匯率
+            }
+        };
+
         const handleCurrencyChange = () => { 
-            isManualRate.value = false; // 切換幣種時重設為自動模式
+            isManualRate.value = false; 
             if(form.value.currency === 'HKD') { currentRate.value = 1; manualShopRate.value = 1; } else fetchRate(); 
         };
         const addUser = () => { const n = newUser.value.trim(); if (n && !users.value.includes(n)) { users.value.push(n); form.value.involved.push(n); if(!form.value.payer) form.value.payer = n; newUser.value = ""; } };
@@ -233,7 +241,7 @@ createApp({
         const startEdit = (i) => {
             isEditing.value = true; editIndex.value = i; const exp = expenses.value[i];
             form.value = JSON.parse(JSON.stringify(exp)); currentRate.value = exp.rateUsed || 1;
-            isManualRate.value = true; // 編輯時預設開啟手動以保留原匯率
+            isManualRate.value = true;
             manualShopRate.value = Number((1 / currentRate.value).toFixed(3));
             window.scrollTo({ top: document.getElementById('input-section').offsetTop - 100, behavior: 'smooth' });
         };
@@ -293,7 +301,7 @@ createApp({
 
         return { 
             users, newUser, form, expenses, isEditing, isExporting, previewImg, showTextShare, shareMessage, showDetails, currentRate, manualShopRate, isManualRate,
-            showClearDialog, clearOptions, confirmClear, updateFromShopRate,
+            showClearDialog, clearOptions, confirmClear, updateFromShopRate, handleManualToggle,
             addUser, addExpense, startEdit, saveEdit, settlements, totalSpent: computed(()=>expenses.value.reduce((s,e)=>s+e.hkd,0)),
             handleCurrencyChange, fetchRate, generateImage, downloadImage:()=> { const l=document.createElement('a'); l.download='MathGod.png'; l.href=previewImg.value; l.click(); },
             shareImage: async()=> { const r=await fetch(previewImg.value); const b=await r.blob(); const f=new File([b],'s.png',{type:'image/png'}); if(navigator.share) await navigator.share({files:[f]}); },
